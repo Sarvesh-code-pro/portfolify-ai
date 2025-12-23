@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { 
-  RefreshCw, FileText, Loader2, X, Upload,
-  ArrowRight
+  RefreshCw, FileText, Loader2,
+  ArrowRight, Download, Copy
 } from "lucide-react";
 import {
   Dialog,
@@ -16,12 +16,23 @@ import {
 } from "@/components/ui/dialog";
 
 interface ResumeSyncProps {
-  portfolioId: string;
+  portfolio: {
+    id: string;
+    role: string;
+    hero_title: string | null;
+    hero_subtitle: string | null;
+    about_text: string | null;
+    skills: string[];
+    projects: any[];
+    experience: any[];
+    education?: any[];
+    links: any;
+  };
   currentResumeText: string | null;
   onSyncComplete: (updates: any) => void;
 }
 
-export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: ResumeSyncProps) {
+export function ResumeSync({ portfolio, currentResumeText, onSyncComplete }: ResumeSyncProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [direction, setDirection] = useState<"resume_to_portfolio" | "portfolio_to_resume" | null>(null);
@@ -29,18 +40,22 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
   const [generatedResume, setGeneratedResume] = useState("");
   const { toast } = useToast();
 
-  const handleSync = async (syncDirection: "resume_to_portfolio" | "portfolio_to_resume", portfolio: any) => {
+  const handleSync = async (syncDirection: "resume_to_portfolio" | "portfolio_to_resume") => {
     setSyncing(true);
     setDirection(syncDirection);
 
     try {
+      console.log("Syncing with direction:", syncDirection, "portfolio:", portfolio);
+      
       const response = await supabase.functions.invoke("sync-resume-portfolio", {
         body: {
           direction: syncDirection,
-          portfolio,
+          portfolio: portfolio,
           resumeText: syncDirection === "resume_to_portfolio" ? newResumeText : undefined
         }
       });
+
+      console.log("Sync response:", response);
 
       if (response.error) throw new Error(response.error.message);
       
@@ -60,12 +75,14 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
           resume_updated_at: new Date().toISOString()
         });
         toast({ title: "Portfolio updated from resume" });
+        setNewResumeText("");
         setIsOpen(false);
       } else {
         setGeneratedResume(response.data.resumeText);
         toast({ title: "Resume generated from portfolio" });
       }
     } catch (error: any) {
+      console.error("Sync error:", error);
       toast({ 
         title: "Sync failed", 
         description: error.message, 
@@ -80,6 +97,16 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
   const copyResume = () => {
     navigator.clipboard.writeText(generatedResume);
     toast({ title: "Resume copied to clipboard" });
+  };
+
+  const downloadResume = () => {
+    const blob = new Blob([generatedResume], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "resume.txt";
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -110,11 +137,11 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
             {/* Update portfolio from resume */}
             <div className="p-4 rounded-xl border border-border bg-card">
               <h3 className="font-semibold mb-2 flex items-center gap-2">
-                <Upload className="w-4 h-4" />
+                <ArrowRight className="w-4 h-4" />
                 Update Portfolio from Resume
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Paste a new version of your resume to update your portfolio.
+                Paste a new version of your resume to update your portfolio content.
               </p>
               <Textarea
                 placeholder="Paste your updated resume here..."
@@ -123,7 +150,7 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
                 className="min-h-[150px] mb-3"
               />
               <Button
-                onClick={() => handleSync("resume_to_portfolio", {})}
+                onClick={() => handleSync("resume_to_portfolio")}
                 disabled={syncing || !newResumeText.trim()}
                 size="sm"
               >
@@ -143,7 +170,7 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
                 Generate Resume from Portfolio
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Create a text resume from your current portfolio content.
+                Create a professional text resume from your current portfolio content.
               </p>
               
               {generatedResume ? (
@@ -155,11 +182,16 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
                   />
                   <div className="flex gap-2">
                     <Button size="sm" onClick={copyResume}>
-                      Copy to Clipboard
+                      <Copy className="w-4 h-4 mr-2" />
+                      Copy
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={downloadResume}>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download
                     </Button>
                     <Button 
                       size="sm" 
-                      variant="outline"
+                      variant="ghost"
                       onClick={() => setGeneratedResume("")}
                     >
                       Clear
@@ -168,7 +200,7 @@ export function ResumeSync({ portfolioId, currentResumeText, onSyncComplete }: R
                 </div>
               ) : (
                 <Button
-                  onClick={() => handleSync("portfolio_to_resume", {})}
+                  onClick={() => handleSync("portfolio_to_resume")}
                   disabled={syncing}
                   size="sm"
                   variant="outline"

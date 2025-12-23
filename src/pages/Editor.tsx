@@ -16,6 +16,7 @@ import { ResumeSync } from "@/components/editor/ResumeSync";
 import { QualityScore } from "@/components/editor/QualityScore";
 import { PortfolioAnalytics } from "@/components/editor/PortfolioAnalytics";
 import { VersionManager } from "@/components/editor/VersionManager";
+import { ABTestManager } from "@/components/editor/ABTestManager";
 interface Project {
   title: string;
   description: string;
@@ -41,9 +42,12 @@ interface Portfolio {
   skills: string[];
   projects: Project[];
   experience: Experience[];
+  education: any[];
   links: { github?: string; linkedin?: string; website?: string };
   template: string;
   theme: { primaryColor: string; backgroundColor: string; textColor: string };
+  resume_text: string | null;
+  quality_score: number | null;
 }
 
 export default function Editor() {
@@ -91,8 +95,11 @@ export default function Editor() {
         skills: Array.isArray(data.skills) ? data.skills as string[] : [],
         projects: Array.isArray(data.projects) ? data.projects as unknown as Project[] : [],
         experience: Array.isArray(data.experience) ? data.experience as unknown as Experience[] : [],
+        education: Array.isArray(data.education) ? data.education as any[] : [],
         links: data.links as Portfolio["links"] || {},
-        theme: data.theme as Portfolio["theme"] || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" }
+        theme: data.theme as Portfolio["theme"] || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" },
+        resume_text: data.resume_text || null,
+        quality_score: data.quality_score || null
       });
       setLoading(false);
     };
@@ -467,42 +474,78 @@ export default function Editor() {
             )}
 
             {activeTab === "tools" && (
-              <div className="space-y-6">
-                <QualityScore 
-                  portfolio={{
-                    id: portfolio.id,
-                    hero_title: portfolio.hero_title,
-                    hero_subtitle: portfolio.hero_subtitle,
-                    about_text: portfolio.about_text,
-                    skills: portfolio.skills,
-                    projects: portfolio.projects,
-                    experience: portfolio.experience,
-                    links: portfolio.links
-                  }}
-                />
-                <ResumeSync 
-                  portfolioId={portfolio.id}
-                  currentResumeText={null}
-                  onSyncComplete={() => {}}
-                />
-                {user && (
-                  <VersionManager 
-                    portfolioId={portfolio.id}
-                    userId={user.id}
-                    basePortfolio={{
+              <div className="space-y-4">
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-2">AI Tools</h3>
+                <div className="flex flex-wrap gap-2">
+                  <QualityScore 
+                    portfolio={{
                       id: portfolio.id,
+                      role: portfolio.role,
                       hero_title: portfolio.hero_title,
                       hero_subtitle: portfolio.hero_subtitle,
                       about_text: portfolio.about_text,
                       skills: portfolio.skills,
-                      projects: JSON.parse(JSON.stringify(portfolio.projects)),
-                      experience: JSON.parse(JSON.stringify(portfolio.experience)),
-                      links: portfolio.links,
-                      template: portfolio.template,
-                      theme: portfolio.theme
+                      projects: portfolio.projects,
+                      experience: portfolio.experience,
+                      links: portfolio.links
+                    }}
+                    onScoreUpdate={(score, suggestions) => {
+                      updatePortfolio({ quality_score: score } as any);
                     }}
                   />
-                )}
+                  <ResumeSync 
+                    portfolio={{
+                      id: portfolio.id,
+                      role: portfolio.role,
+                      hero_title: portfolio.hero_title,
+                      hero_subtitle: portfolio.hero_subtitle,
+                      about_text: portfolio.about_text,
+                      skills: portfolio.skills,
+                      projects: portfolio.projects,
+                      experience: portfolio.experience,
+                      education: portfolio.education,
+                      links: portfolio.links
+                    }}
+                    currentResumeText={portfolio.resume_text}
+                    onSyncComplete={(updates) => {
+                      updatePortfolio(updates);
+                    }}
+                  />
+                </div>
+
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mt-6 mb-2">Version Management</h3>
+                <div className="flex flex-wrap gap-2">
+                  {user && (
+                    <>
+                      <VersionManager 
+                        portfolioId={portfolio.id}
+                        userId={user.id}
+                        basePortfolio={{
+                          id: portfolio.id,
+                          username: portfolio.username,
+                          role: portfolio.role,
+                          hero_title: portfolio.hero_title,
+                          hero_subtitle: portfolio.hero_subtitle,
+                          about_text: portfolio.about_text,
+                          skills: portfolio.skills,
+                          projects: JSON.parse(JSON.stringify(portfolio.projects)),
+                          experience: JSON.parse(JSON.stringify(portfolio.experience)),
+                          education: JSON.parse(JSON.stringify(portfolio.education)),
+                          links: portfolio.links,
+                          template: portfolio.template,
+                          theme: portfolio.theme,
+                          resume_text: portfolio.resume_text
+                        }}
+                      />
+                      <ABTestManager 
+                        portfolioId={portfolio.id}
+                        userId={user.id}
+                      />
+                    </>
+                  )}
+                </div>
+
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mt-6 mb-2">Analytics</h3>
                 <PortfolioAnalytics 
                   portfolioId={portfolio.id}
                   isPublished={portfolio.status === "published"}

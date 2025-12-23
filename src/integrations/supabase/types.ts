@@ -14,6 +14,63 @@ export type Database = {
   }
   public: {
     Tables: {
+      portfolio_ab_tests: {
+        Row: {
+          created_at: string
+          ended_at: string | null
+          id: string
+          name: string
+          started_at: string
+          status: string
+          traffic_split: number
+          updated_at: string
+          user_id: string
+          version_a_id: string
+          version_b_id: string
+        }
+        Insert: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          name: string
+          started_at?: string
+          status?: string
+          traffic_split?: number
+          updated_at?: string
+          user_id: string
+          version_a_id: string
+          version_b_id: string
+        }
+        Update: {
+          created_at?: string
+          ended_at?: string | null
+          id?: string
+          name?: string
+          started_at?: string
+          status?: string
+          traffic_split?: number
+          updated_at?: string
+          user_id?: string
+          version_a_id?: string
+          version_b_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_ab_tests_version_a_id_fkey"
+            columns: ["version_a_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_ab_tests_version_b_id_fkey"
+            columns: ["version_b_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolio_analytics: {
         Row: {
           created_at: string
