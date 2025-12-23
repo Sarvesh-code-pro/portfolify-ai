@@ -8,11 +8,14 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, Save, Globe, Eye, EyeOff, Loader2, Plus, Trash2, 
-  GripVertical, ExternalLink, Settings, Palette 
+  GripVertical, ExternalLink, Settings, Palette, BarChart3, FileText, GitBranch, Star
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { PortfolioPreview } from "@/components/editor/PortfolioPreview";
-
+import { ResumeSync } from "@/components/editor/ResumeSync";
+import { QualityScore } from "@/components/editor/QualityScore";
+import { PortfolioAnalytics } from "@/components/editor/PortfolioAnalytics";
+import { VersionManager } from "@/components/editor/VersionManager";
 interface Project {
   title: string;
   description: string;
@@ -50,7 +53,7 @@ export default function Editor() {
   const [saving, setSaving] = useState(false);
   const [publishing, setPublishing] = useState(false);
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
-  const [activeTab, setActiveTab] = useState<"content" | "style">("content");
+  const [activeTab, setActiveTab] = useState<"content" | "style" | "tools">("content");
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -251,24 +254,33 @@ export default function Editor() {
         {/* Editor panel */}
         <div className="w-[480px] border-r border-border/50 flex flex-col overflow-hidden">
           {/* Tabs */}
-          <div className="flex border-b border-border/50 p-2 gap-2">
+          <div className="flex border-b border-border/50 p-2 gap-1">
             <button
               onClick={() => setActiveTab("content")}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === "content" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
               }`}
             >
-              <Settings className="w-4 h-4 inline mr-2" />
+              <Settings className="w-4 h-4 inline mr-1" />
               Content
             </button>
             <button
               onClick={() => setActiveTab("style")}
-              className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
                 activeTab === "style" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
               }`}
             >
-              <Palette className="w-4 h-4 inline mr-2" />
+              <Palette className="w-4 h-4 inline mr-1" />
               Style
+            </button>
+            <button
+              onClick={() => setActiveTab("tools")}
+              className={`flex-1 py-2 px-3 rounded-lg text-sm font-medium transition-colors ${
+                activeTab === "tools" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-secondary"
+              }`}
+            >
+              <Star className="w-4 h-4 inline mr-1" />
+              Tools
             </button>
           </div>
 
@@ -452,6 +464,50 @@ export default function Editor() {
                   </div>
                 </div>
               </>
+            )}
+
+            {activeTab === "tools" && (
+              <div className="space-y-6">
+                <QualityScore 
+                  portfolio={{
+                    id: portfolio.id,
+                    hero_title: portfolio.hero_title,
+                    hero_subtitle: portfolio.hero_subtitle,
+                    about_text: portfolio.about_text,
+                    skills: portfolio.skills,
+                    projects: portfolio.projects,
+                    experience: portfolio.experience,
+                    links: portfolio.links
+                  }}
+                />
+                <ResumeSync 
+                  portfolioId={portfolio.id}
+                  currentResumeText={null}
+                  onSyncComplete={() => {}}
+                />
+                {user && (
+                  <VersionManager 
+                    portfolioId={portfolio.id}
+                    userId={user.id}
+                    basePortfolio={{
+                      id: portfolio.id,
+                      hero_title: portfolio.hero_title,
+                      hero_subtitle: portfolio.hero_subtitle,
+                      about_text: portfolio.about_text,
+                      skills: portfolio.skills,
+                      projects: JSON.parse(JSON.stringify(portfolio.projects)),
+                      experience: JSON.parse(JSON.stringify(portfolio.experience)),
+                      links: portfolio.links,
+                      template: portfolio.template,
+                      theme: portfolio.theme
+                    }}
+                  />
+                )}
+                <PortfolioAnalytics 
+                  portfolioId={portfolio.id}
+                  isPublished={portfolio.status === "published"}
+                />
+              </div>
             )}
           </div>
         </div>
