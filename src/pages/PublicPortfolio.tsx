@@ -40,6 +40,17 @@ export default function PublicPortfolio() {
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
+  const trackLinkClick = async (linkType: string, linkUrl: string) => {
+    if (!portfolio) return;
+    try {
+      await supabase.functions.invoke("track-analytics", {
+        body: { portfolioId: portfolio.id, action: "link_click", linkType, linkUrl }
+      });
+    } catch (e) {
+      console.error("Failed to track click:", e);
+    }
+  };
+
   useEffect(() => {
     const fetchPortfolio = async () => {
       const { data, error } = await supabase
@@ -53,6 +64,15 @@ export default function PublicPortfolio() {
         setNotFound(true);
         setLoading(false);
         return;
+      }
+
+      // Track view
+      try {
+        await supabase.functions.invoke("track-analytics", {
+          body: { portfolioId: data.id, action: "view" }
+        });
+      } catch (e) {
+        console.error("Failed to track view:", e);
       }
 
       setPortfolio({
@@ -134,6 +154,7 @@ export default function PublicPortfolio() {
                   href={portfolio.links.github.startsWith("http") ? portfolio.links.github : `https://${portfolio.links.github}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackLinkClick("github", portfolio.links.github!)}
                   className="p-3 rounded-full transition-colors hover:opacity-70"
                   style={{ backgroundColor: `${theme.primaryColor}20` }}
                 >
@@ -145,6 +166,7 @@ export default function PublicPortfolio() {
                   href={portfolio.links.linkedin.startsWith("http") ? portfolio.links.linkedin : `https://${portfolio.links.linkedin}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackLinkClick("linkedin", portfolio.links.linkedin!)}
                   className="p-3 rounded-full transition-colors hover:opacity-70"
                   style={{ backgroundColor: `${theme.primaryColor}20` }}
                 >
@@ -156,6 +178,7 @@ export default function PublicPortfolio() {
                   href={portfolio.links.website.startsWith("http") ? portfolio.links.website : `https://${portfolio.links.website}`}
                   target="_blank"
                   rel="noopener noreferrer"
+                  onClick={() => trackLinkClick("website", portfolio.links.website!)}
                   className="p-3 rounded-full transition-colors hover:opacity-70"
                   style={{ backgroundColor: `${theme.primaryColor}20` }}
                 >

@@ -3,7 +3,7 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Plus, LogOut, Edit, Globe, EyeOff, ExternalLink, Trash2 } from "lucide-react";
+import { Sparkles, Plus, LogOut, Edit, Globe, EyeOff, ExternalLink, Trash2, BarChart3, Eye } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 interface Portfolio {
@@ -14,12 +14,19 @@ interface Portfolio {
   hero_title: string | null;
   created_at: string;
   updated_at: string;
+  quality_score: number | null;
+}
+
+interface AnalyticsSummary {
+  portfolio_id: string;
+  total_views: number;
 }
 
 export default function Dashboard() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [analytics, setAnalytics] = useState<Record<string, number>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -52,11 +59,25 @@ export default function Dashboard() {
   const fetchPortfolios = async () => {
     const { data, error } = await supabase
       .from("portfolios")
-      .select("id, username, role, status, hero_title, created_at, updated_at")
+      .select("id, username, role, status, hero_title, created_at, updated_at, quality_score")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
       setPortfolios(data);
+      
+      // Fetch analytics summary for each portfolio
+      const analyticsMap: Record<string, number> = {};
+      for (const p of data) {
+        const { data: analyticsData } = await supabase
+          .from("portfolio_analytics")
+          .select("view_count")
+          .eq("portfolio_id", p.id);
+        
+        if (analyticsData) {
+          analyticsMap[p.id] = analyticsData.reduce((sum, row) => sum + row.view_count, 0);
+        }
+      }
+      setAnalytics(analyticsMap);
     }
   };
 
@@ -170,6 +191,23 @@ export default function Dashboard() {
                       <span>{roleLabels[portfolio.role] || portfolio.role}</span>
                       <span>•</span>
                       <span>/{portfolio.username}</span>
+                      {portfolio.quality_score !== null && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            Score: {portfolio.quality_score}/100
+                          </span>
+                        </>
+                      )}
+                      {analytics[portfolio.id] > 0 && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Eye className="w-3 h-3" />
+                            {analytics[portfolio.id]} views
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
