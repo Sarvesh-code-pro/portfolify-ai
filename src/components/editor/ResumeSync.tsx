@@ -5,7 +5,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { 
   RefreshCw, FileText, Loader2,
-  ArrowRight, Download, Copy
+  ArrowRight, Download
 } from "lucide-react";
 import {
   Dialog,
@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { ResumePDFPreview } from "./ResumePDFPreview";
 
 interface ResumeSyncProps {
   portfolio: {
@@ -37,10 +38,10 @@ export function ResumeSync({ portfolio, currentResumeText, onSyncComplete }: Res
   const [syncing, setSyncing] = useState(false);
   const [direction, setDirection] = useState<"resume_to_portfolio" | "portfolio_to_resume" | null>(null);
   const [newResumeText, setNewResumeText] = useState("");
-  const [generatedResume, setGeneratedResume] = useState("");
+  const [showPDFPreview, setShowPDFPreview] = useState(false);
   const { toast } = useToast();
 
-  const handleSync = async (syncDirection: "resume_to_portfolio" | "portfolio_to_resume") => {
+  const handleSync = async (syncDirection: "resume_to_portfolio") => {
     setSyncing(true);
     setDirection(syncDirection);
 
@@ -51,7 +52,7 @@ export function ResumeSync({ portfolio, currentResumeText, onSyncComplete }: Res
         body: {
           direction: syncDirection,
           portfolio: portfolio,
-          resumeText: syncDirection === "resume_to_portfolio" ? newResumeText : undefined
+          resumeText: newResumeText
         }
       });
 
@@ -63,24 +64,19 @@ export function ResumeSync({ portfolio, currentResumeText, onSyncComplete }: Res
         throw new Error(response.data.error);
       }
 
-      if (syncDirection === "resume_to_portfolio") {
-        onSyncComplete({
-          hero_title: response.data.heroTitle,
-          hero_subtitle: response.data.heroSubtitle,
-          about_text: response.data.about,
-          skills: response.data.skills,
-          projects: response.data.projects,
-          experience: response.data.experience,
-          resume_text: newResumeText,
-          resume_updated_at: new Date().toISOString()
-        });
-        toast({ title: "Portfolio updated from resume" });
-        setNewResumeText("");
-        setIsOpen(false);
-      } else {
-        setGeneratedResume(response.data.resumeText);
-        toast({ title: "Resume generated from portfolio" });
-      }
+      onSyncComplete({
+        hero_title: response.data.heroTitle,
+        hero_subtitle: response.data.heroSubtitle,
+        about_text: response.data.about,
+        skills: response.data.skills,
+        projects: response.data.projects,
+        experience: response.data.experience,
+        resume_text: newResumeText,
+        resume_updated_at: new Date().toISOString()
+      });
+      toast({ title: "Portfolio updated from resume" });
+      setNewResumeText("");
+      setIsOpen(false);
     } catch (error: any) {
       console.error("Sync error:", error);
       toast({ 
@@ -94,19 +90,8 @@ export function ResumeSync({ portfolio, currentResumeText, onSyncComplete }: Res
     }
   };
 
-  const copyResume = () => {
-    navigator.clipboard.writeText(generatedResume);
-    toast({ title: "Resume copied to clipboard" });
-  };
-
-  const downloadResume = () => {
-    const blob = new Blob([generatedResume], { type: "text/plain" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "resume.txt";
-    a.click();
-    URL.revokeObjectURL(url);
+  const handleGeneratePDF = () => {
+    setShowPDFPreview(true);
   };
 
   return (
@@ -163,56 +148,23 @@ export function ResumeSync({ portfolio, currentResumeText, onSyncComplete }: Res
               </Button>
             </div>
 
-            {/* Generate resume from portfolio */}
+            {/* Generate ATS PDF from portfolio */}
             <div className="p-4 rounded-xl border border-border bg-card">
               <h3 className="font-semibold mb-2 flex items-center gap-2">
                 <FileText className="w-4 h-4" />
-                Generate Resume from Portfolio
+                Generate ATS-Friendly Resume PDF
               </h3>
               <p className="text-sm text-muted-foreground mb-4">
-                Create a professional text resume from your current portfolio content.
+                Create a professional PDF resume from your portfolio. Uses single-column ATS-friendly format.
               </p>
-              
-              {generatedResume ? (
-                <div className="space-y-3">
-                  <Textarea
-                    value={generatedResume}
-                    readOnly
-                    className="min-h-[200px] font-mono text-sm"
-                  />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={copyResume}>
-                      <Copy className="w-4 h-4 mr-2" />
-                      Copy
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={downloadResume}>
-                      <Download className="w-4 h-4 mr-2" />
-                      Download
-                    </Button>
-                    <Button 
-                      size="sm" 
-                      variant="ghost"
-                      onClick={() => setGeneratedResume("")}
-                    >
-                      Clear
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                <Button
-                  onClick={() => handleSync("portfolio_to_resume")}
-                  disabled={syncing}
-                  size="sm"
-                  variant="outline"
-                >
-                  {syncing && direction === "portfolio_to_resume" ? (
-                    <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                  ) : (
-                    <FileText className="w-4 h-4 mr-2" />
-                  )}
-                  Generate Resume
-                </Button>
-              )}
+              <Button
+                onClick={handleGeneratePDF}
+                size="sm"
+                variant="outline"
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Generate PDF Resume
+              </Button>
             </div>
 
             {/* Current resume */}
@@ -229,6 +181,12 @@ export function ResumeSync({ portfolio, currentResumeText, onSyncComplete }: Res
           </div>
         </DialogContent>
       </Dialog>
+
+      <ResumePDFPreview
+        portfolio={portfolio}
+        open={showPDFPreview}
+        onOpenChange={setShowPDFPreview}
+      />
     </>
   );
 }

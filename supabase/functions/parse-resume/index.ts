@@ -22,7 +22,6 @@ serve(async (req) => {
 
     // If PDF base64 is provided, extract text from it
     if (resumeBase64 && !resumeText) {
-      // For PDF parsing, we'll send it to the AI which can read PDF content
       textContent = `[PDF Resume Content - Base64 encoded file provided]`;
     }
 
@@ -30,57 +29,77 @@ serve(async (req) => {
       throw new Error("No resume content provided");
     }
 
-    const systemPrompt = `You are an expert resume parser and portfolio content generator. Parse the resume and extract structured information.
+    // Enhanced prompt for comprehensive extraction with NO information loss
+    const systemPrompt = `You are an expert resume parser. Your job is to extract EVERY piece of information from the resume with ZERO information loss.
 
-Analyze the resume carefully and:
-1. Extract all professional information
-2. Detect the most suitable role (developer, designer, or product_manager) based on the content
-3. Generate professional, recruiter-friendly portfolio content
+CRITICAL EXTRACTION RULES:
+1. Extract ALL sections present in the resume - do NOT skip or summarize any content
+2. Preserve ALL dates, numbers, metrics, percentages, and specific achievements
+3. Keep ALL bullet points and detailed descriptions - do not condense
+4. Extract ALL skills mentioned anywhere in the resume
+5. Capture certifications, awards, achievements, publications, volunteer work if present
+6. Extract ALL contact information: email, phone, LinkedIn, GitHub, website, portfolio links
+7. If you cannot classify a section, include it in unmappedSections array
+8. Set warnings for any content that seems incomplete or unclear
 
-Return ONLY valid JSON with this exact structure:
+Return ONLY valid JSON with this EXACT structure:
 {
   "detectedRole": "developer" | "designer" | "product_manager",
-  "heroTitle": "Full Name - Professional Title",
-  "heroSubtitle": "One impactful sentence about what they do",
-  "about": "2-3 professional paragraphs about their experience",
-  "skills": ["skill1", "skill2", ...],
+  "heroTitle": "Full Name - Professional Title (extracted exactly as written)",
+  "heroSubtitle": "One impactful sentence summarizing their expertise",
+  "about": "2-3 paragraphs - keep all details from summary/objective section",
+  "skills": ["ALL skills mentioned - technical, soft skills, tools, frameworks, languages"],
   "projects": [
     {
       "title": "Project Name",
-      "description": "What the project does and impact",
-      "technologies": ["tech1", "tech2"],
-      "link": ""
+      "description": "FULL description with all metrics and achievements",
+      "technologies": ["all technologies listed"],
+      "link": "project URL if provided"
     }
   ],
   "experience": [
     {
       "company": "Company Name",
-      "role": "Job Title",
-      "period": "Start - End",
-      "description": "Key accomplishments"
+      "role": "Exact Job Title",
+      "period": "Exact dates as written (e.g., Jan 2020 - Present)",
+      "description": "ALL bullet points and achievements - preserve metrics like '40% improvement', 'Led team of 5', etc."
     }
   ],
   "education": [
     {
-      "institution": "School Name",
-      "degree": "Degree Name",
-      "year": "Year"
+      "institution": "School/University Name",
+      "degree": "Full degree name including major/minor",
+      "year": "Year or date range"
     }
   ],
+  "certifications": ["All certifications with dates if provided"],
+  "achievements": ["Awards, publications, notable achievements"],
   "extractedLinks": {
-    "github": "",
-    "linkedin": "",
-    "website": ""
-  }
-}`;
+    "email": "extracted email",
+    "phone": "extracted phone number",
+    "github": "github URL",
+    "linkedin": "linkedin URL",
+    "website": "personal website or portfolio URL"
+  },
+  "warnings": ["List any content that seems truncated or unclear"],
+  "unmappedSections": ["Any section headings that couldn't be classified"],
+  "rawTextPreserved": true
+}
 
-    const userPrompt = `Parse this resume and generate professional portfolio content:
+IMPORTANT: Quality over brevity. It's better to include too much detail than to lose any information.`;
+
+    const userPrompt = `Extract ALL information from this resume. Do NOT summarize or skip any content:
 
 ${textContent}
 
-Make the content polished, confident, and recruiter-friendly. Detect the role based on their experience and skills.`;
+Remember:
+- Preserve ALL metrics (percentages, numbers, team sizes)
+- Keep ALL bullet points from experience
+- Extract EVERY skill mentioned
+- Include ALL contact info and links
+- Flag anything that seems incomplete in warnings`;
 
-    console.log("Calling AI to parse resume...");
+    console.log("Calling AI to parse resume with enhanced extraction...");
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -142,7 +161,26 @@ Make the content polished, confident, and recruiter-friendly. Detect the role ba
       }
     }
 
-    console.log("Resume parsed successfully, detected role:", parsedData.detectedRole);
+    // Add the raw text for reference
+    parsedData.rawText = textContent;
+    
+    // Ensure arrays exist even if empty
+    parsedData.skills = parsedData.skills || [];
+    parsedData.projects = parsedData.projects || [];
+    parsedData.experience = parsedData.experience || [];
+    parsedData.education = parsedData.education || [];
+    parsedData.certifications = parsedData.certifications || [];
+    parsedData.achievements = parsedData.achievements || [];
+    parsedData.warnings = parsedData.warnings || [];
+    parsedData.unmappedSections = parsedData.unmappedSections || [];
+    parsedData.extractedLinks = parsedData.extractedLinks || {};
+
+    console.log("Resume parsed successfully:");
+    console.log("- Detected role:", parsedData.detectedRole);
+    console.log("- Skills count:", parsedData.skills.length);
+    console.log("- Experience count:", parsedData.experience.length);
+    console.log("- Projects count:", parsedData.projects.length);
+    console.log("- Warnings:", parsedData.warnings);
 
     return new Response(JSON.stringify(parsedData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
