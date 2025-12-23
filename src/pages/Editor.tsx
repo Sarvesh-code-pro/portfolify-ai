@@ -108,9 +108,9 @@ export default function Editor() {
           hero_title: portfolio.hero_title,
           hero_subtitle: portfolio.hero_subtitle,
           about_text: portfolio.about_text,
-          skills: portfolio.skills as unknown as string[],
-          projects: portfolio.projects as unknown as object[],
-          experience: portfolio.experience as unknown as object[],
+          skills: portfolio.skills,
+          projects: JSON.parse(JSON.stringify(portfolio.projects)),
+          experience: JSON.parse(JSON.stringify(portfolio.experience)),
           links: portfolio.links,
           template: portfolio.template,
           theme: portfolio.theme
