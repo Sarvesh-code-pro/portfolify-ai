@@ -9,6 +9,14 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface ResumePDFPreviewProps {
   portfolio: {
@@ -29,13 +37,13 @@ interface ResumePDFPreviewProps {
 export function ResumePDFPreview({ portfolio, open, onOpenChange }: ResumePDFPreviewProps) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [pageLimit, setPageLimit] = useState<1 | 2>(1);
 
   const generatePreview = async () => {
     setLoading(true);
     try {
-      // Small delay to ensure UI updates
       await new Promise(resolve => setTimeout(resolve, 100));
-      const url = generateResumePDFDataUrl(portfolio);
+      const url = generateResumePDFDataUrl(portfolio, pageLimit);
       setPdfUrl(url);
     } catch (error) {
       console.error("Error generating PDF preview:", error);
@@ -45,19 +53,24 @@ export function ResumePDFPreview({ portfolio, open, onOpenChange }: ResumePDFPre
   };
 
   useEffect(() => {
-    if (open && !pdfUrl) {
+    if (open) {
       generatePreview();
     }
-  }, [open]);
+  }, [open, pageLimit]);
 
   const handleDownload = () => {
     const name = portfolio.hero_title?.split(" - ")[0]?.trim()?.toLowerCase().replace(/\s+/g, "_") || "resume";
-    downloadResumePDF(portfolio, `${name}_resume.pdf`);
+    downloadResumePDF(portfolio, `${name}_resume.pdf`, pageLimit);
   };
 
   const handleRegenerate = () => {
     setPdfUrl(null);
     generatePreview();
+  };
+
+  const handlePageLimitChange = (value: string) => {
+    setPageLimit(value === "2" ? 2 : 1);
+    setPdfUrl(null);
   };
 
   return (
@@ -69,13 +82,35 @@ export function ResumePDFPreview({ portfolio, open, onOpenChange }: ResumePDFPre
             ATS-Friendly Resume Preview
           </DialogTitle>
           <DialogDescription>
-            Preview your resume before downloading. This PDF uses a single-column layout with simple fonts for ATS compatibility.
+            Preview your resume before downloading. Single-column layout with simple fonts for ATS compatibility.
           </DialogDescription>
         </DialogHeader>
 
+        <div className="flex items-center gap-4 py-2 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Label htmlFor="page-limit" className="text-sm text-muted-foreground whitespace-nowrap">
+              Page limit:
+            </Label>
+            <Select value={pageLimit.toString()} onValueChange={handlePageLimitChange}>
+              <SelectTrigger id="page-limit" className="w-32 h-8">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="1">One page</SelectItem>
+                <SelectItem value="2">Two pages</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <span className="text-xs text-muted-foreground">
+            {pageLimit === 1 
+              ? "Content will be intelligently compressed to fit one page" 
+              : "Full content with natural page breaks"}
+          </span>
+        </div>
+
         <div className="flex-1 min-h-0 flex flex-col">
           {loading ? (
-            <div className="flex-1 flex items-center justify-center bg-muted/50 rounded-lg">
+            <div className="flex-1 flex items-center justify-center bg-muted/50 rounded-lg min-h-[500px]">
               <div className="text-center">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3 text-primary" />
                 <p className="text-muted-foreground">Generating PDF preview...</p>
@@ -90,7 +125,7 @@ export function ResumePDFPreview({ portfolio, open, onOpenChange }: ResumePDFPre
               />
             </div>
           ) : (
-            <div className="flex-1 flex items-center justify-center bg-muted/50 rounded-lg">
+            <div className="flex-1 flex items-center justify-center bg-muted/50 rounded-lg min-h-[500px]">
               <p className="text-muted-foreground">No preview available</p>
             </div>
           )}

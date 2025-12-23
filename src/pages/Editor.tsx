@@ -17,6 +17,7 @@ import { QualityScore } from "@/components/editor/QualityScore";
 import { PortfolioAnalytics } from "@/components/editor/PortfolioAnalytics";
 import { VersionManager } from "@/components/editor/VersionManager";
 import { ABTestManager } from "@/components/editor/ABTestManager";
+import { AICommandInput } from "@/components/editor/AICommandInput";
 interface Project {
   title: string;
   description: string;
@@ -475,7 +476,23 @@ export default function Editor() {
 
             {activeTab === "tools" && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-2">AI Tools</h3>
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-2">AI Content Editor</h3>
+                <AICommandInput 
+                  portfolio={{
+                    id: portfolio.id,
+                    role: portfolio.role,
+                    hero_title: portfolio.hero_title,
+                    hero_subtitle: portfolio.hero_subtitle,
+                    about_text: portfolio.about_text,
+                    skills: portfolio.skills,
+                    projects: portfolio.projects,
+                    experience: portfolio.experience
+                  }}
+                  onUpdate={updatePortfolio}
+                  onSave={handleSave}
+                />
+
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mt-6 mb-2">AI Tools</h3>
                 <div className="flex flex-wrap gap-2">
                   <QualityScore 
                     portfolio={{
