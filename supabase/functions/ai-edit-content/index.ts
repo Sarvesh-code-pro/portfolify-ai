@@ -36,25 +36,28 @@ serve(async (req) => {
       throw new Error("LOVABLE_API_KEY is not configured");
     }
 
-    const systemPrompt = `You are a professional content editor for portfolios and resumes. Your task is to improve or rewrite content based on user commands.
+    console.log(
+      `[ai-edit-content] scope=${scope} section=${sectionType ?? "-"} cmd=${JSON.stringify(
+        command.slice(0, 80)
+      )} contentLen=${content.length}`
+    );
 
-IMPORTANT RULES:
-1. Only output the improved content - no explanations, no markdown wrappers
-2. Preserve the original meaning and key information
-3. Match the professional tone expected for ${context?.role || "professional"} roles
-4. Keep formatting consistent (bullets, structure)
-5. Do not add information that wasn't in the original
-6. If improving specific sections, maintain their purpose:
-   - Summary/About: Professional summary, career highlights
-   - Experience: Action verbs, quantifiable achievements
-   - Skills: Technical and soft skills, relevant keywords
-   - Projects: Clear descriptions of impact and technologies
-   - Education: Degrees, institutions, relevant coursework
+    const systemPrompt = `You are a professional content editor for portfolios and resumes. Apply the user's command to the provided content.
 
-Current scope: ${scope}
-${sectionType ? `Section type: ${sectionType}` : ""}
+OUTPUT RULES (strict):
+- Return ONLY the edited content. No explanations, no markdown, no code fences.
+- Do NOT invent facts; keep the meaning and key details.
+- Keep formatting simple and ATS-friendly.
 
-Apply the user's command to improve the content.`;
+SECTION FORMAT (when sectionType is provided):
+- hero: return exactly 2 lines (line 1 = title, line 2 = subtitle). No labels.
+- skills: return a comma-separated list of skills (no bullets, no JSON).
+- about: return a single paragraph (no quotes).
+- experience/projects: keep the same structure and keep entries separated by a blank line.
+
+Context:
+- Target role: ${context?.role || "professional"}
+- Scope: ${scope}${sectionType ? ` | Section: ${sectionType}` : ""}`;
 
     const userPrompt = `Command: "${command}"
 
@@ -63,21 +66,80 @@ ${content}
 
 Return ONLY the improved content, nothing else.`;
 
+    const body: any = {
+      model: "google/gemini-2.5-flash",
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      temperature: 0.7,
+      max_tokens: 2000,
+    };
+
+    // For full-portfolio edits, force structured output via tool-calling so we never paste JSON into a text field.
+    if (scope === "portfolio") {
+      body.temperature = 0.4;
+      body.tools = [
+        {
+          type: "function",
+          function: {
+            name: "patch_portfolio",
+            description:
+              "Return updated portfolio fields. Only include fields that should change based on the command.",
+            parameters: {
+              type: "object",
+              properties: {
+                hero_title: { type: "string" },
+                hero_subtitle: { type: "string" },
+                about_text: { type: "string" },
+                skills: { type: "array", items: { type: "string" } },
+                experience: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      role: { type: "string" },
+                      company: { type: "string" },
+                      period: { type: "string" },
+                      description: { type: "string" },
+                    },
+                    required: ["role", "company", "period", "description"],
+                    additionalProperties: false,
+                  },
+                },
+                projects: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      title: { type: "string" },
+                      description: { type: "string" },
+                      technologies: {
+                        type: "array",
+                        items: { type: "string" },
+                      },
+                      link: { type: "string" },
+                    },
+                    required: ["title", "description"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              additionalProperties: false,
+            },
+          },
+        },
+      ];
+      body.tool_choice = { type: "function", function: { name: "patch_portfolio" } };
+    }
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${LOVABLE_API_KEY}`,
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-        temperature: 0.7,
-        max_tokens: 2000,
-      }),
+      body: JSON.stringify(body),
     });
 
     if (!response.ok) {

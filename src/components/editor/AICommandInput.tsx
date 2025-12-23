@@ -31,9 +31,10 @@ interface EditHistoryEntry {
   id: string;
   timestamp: Date;
   command: string;
-  field: string;
-  originalValue: string;
-  newValue: string;
+  scope: EditScope;
+  section?: SectionType;
+  beforePatch: Record<string, any>;
+  afterPatch: Record<string, any>;
 }
 
 interface AICommandInputProps {
@@ -95,18 +96,61 @@ export function AICommandInput({ portfolio, onUpdate, onSave }: AICommandInputPr
     }
   };
 
+  const parseSkillsText = (text: string): string[] => {
+    const raw = (text ?? "").trim();
+    if (!raw) return [];
+
+    // JSON array (sometimes models respond with ["A", "B"])
+    if (raw.startsWith("[") && raw.endsWith("]")) {
+      try {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          return parsed.map((s) => String(s).trim()).filter(Boolean);
+        }
+      } catch {
+        // fall through
+      }
+    }
+
+    // Bullet/newline list
+    if (raw.includes("\n")) {
+      const lines = raw
+        .split("\n")
+        .map((l) => l.replace(/^\s*[-*•]+\s*/, "").trim())
+        .filter(Boolean);
+      if (lines.length >= 2) return lines;
+    }
+
+    // Comma-separated
+    return raw
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  };
+
   const applySectionUpdate = (section: SectionType, content: string) => {
     switch (section) {
       case "about":
         return { about_text: content };
-      case "hero":
-        const lines = content.split("\n").filter(l => l.trim());
-        return { 
-          hero_title: lines[0] || portfolio.hero_title,
-          hero_subtitle: lines[1] || portfolio.hero_subtitle
+      case "hero": {
+        const cleaned = content
+          .split("\n")
+          .map((l) => l.trim())
+          .filter(Boolean)
+          .map((l) =>
+            l
+              .replace(/^(hero\s*)?title\s*:\s*/i, "")
+              .replace(/^(hero\s*)?subtitle\s*:\s*/i, "")
+              .trim()
+          );
+
+        return {
+          hero_title: cleaned[0] || portfolio.hero_title,
+          hero_subtitle: cleaned[1] || portfolio.hero_subtitle,
         };
+      }
       case "skills":
-        return { skills: content.split(",").map(s => s.trim()).filter(Boolean) };
+        return { skills: parseSkillsText(content) };
       case "experience":
         // Parse experience back - this is complex, so we handle it carefully
         const expBlocks = content.split("\n\n").filter(b => b.trim());
@@ -186,39 +230,69 @@ export function AICommandInput({ portfolio, onUpdate, onSave }: AICommandInputPr
 
       if (error) throw error;
 
-      if (!data?.editedContent) {
+      if (!data?.editedContent && !data?.updates) {
         throw new Error("No edited content returned");
       }
 
-      // Save to history before applying
-      const historyEntry: EditHistoryEntry = {
-        id: crypto.randomUUID(),
-        timestamp: new Date(),
-        command: cmd,
-        field: scope === "portfolio" ? "portfolio" : selectedSection,
-        originalValue: content,
-        newValue: data.editedContent
+      const beforeSnapshot = {
+        hero_title: portfolio.hero_title,
+        hero_subtitle: portfolio.hero_subtitle,
+        about_text: portfolio.about_text,
+        skills: portfolio.skills,
+        experience: portfolio.experience,
+        projects: portfolio.projects,
       };
 
+      let historyEntry: EditHistoryEntry;
+
       // Apply the update
-      let updates: Record<string, any>;
       if (scope === "portfolio") {
-        try {
-          const parsed = JSON.parse(data.editedContent);
-          updates = parsed;
-        } catch {
-          // If can't parse as JSON, treat as about_text
-          updates = { about_text: data.editedContent };
-        }
+        const updates: Record<string, any> =
+          data?.updates && typeof data.updates === "object"
+            ? data.updates
+            : (() => {
+                try {
+                  return JSON.parse(String(data.editedContent));
+                } catch {
+                  throw new Error(
+                    "AI returned an unexpected format for a full-portfolio edit. Try editing a specific section instead."
+                  );
+                }
+              })();
+
+        const afterSnapshot = { ...beforeSnapshot, ...updates };
+
+        historyEntry = {
+          id: crypto.randomUUID(),
+          timestamp: new Date(),
+          command: cmd,
+          scope,
+          beforePatch: beforeSnapshot,
+          afterPatch: afterSnapshot,
+        };
+
+        onUpdate(updates);
       } else {
-        updates = applySectionUpdate(selectedSection, data.editedContent);
+        const beforePatch = applySectionUpdate(selectedSection, content);
+        const afterPatch = applySectionUpdate(selectedSection, String(data.editedContent));
+
+        historyEntry = {
+          id: crypto.randomUUID(),
+          timestamp: new Date(),
+          command: cmd,
+          scope,
+          section: selectedSection,
+          beforePatch,
+          afterPatch,
+        };
+
+        onUpdate(afterPatch);
       }
 
       // Update history
       setHistory(prev => [...prev.slice(0, historyIndex + 1), historyEntry]);
       setHistoryIndex(prev => prev + 1);
 
-      onUpdate(updates);
       setCommand("");
 
       toast({ 
@@ -242,23 +316,21 @@ export function AICommandInput({ portfolio, onUpdate, onSave }: AICommandInputPr
 
   const undo = useCallback(() => {
     if (historyIndex < 0) return;
-    
+
     const entry = history[historyIndex];
-    const updates = applySectionUpdate(entry.field as SectionType, entry.originalValue);
-    onUpdate(updates);
-    setHistoryIndex(prev => prev - 1);
-    
+    onUpdate(entry.beforePatch);
+    setHistoryIndex((prev) => prev - 1);
+
     toast({ title: "Undone", description: `Reverted: "${entry.command}"` });
   }, [history, historyIndex, onUpdate, toast]);
 
   const redo = useCallback(() => {
     if (historyIndex >= history.length - 1) return;
-    
+
     const entry = history[historyIndex + 1];
-    const updates = applySectionUpdate(entry.field as SectionType, entry.newValue);
-    onUpdate(updates);
-    setHistoryIndex(prev => prev + 1);
-    
+    onUpdate(entry.afterPatch);
+    setHistoryIndex((prev) => prev + 1);
+
     toast({ title: "Redone", description: `Re-applied: "${entry.command}"` });
   }, [history, historyIndex, onUpdate, toast]);
 
