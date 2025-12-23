@@ -14,6 +14,79 @@ export type Database = {
   }
   public: {
     Tables: {
+      portfolio_analytics: {
+        Row: {
+          created_at: string
+          id: string
+          portfolio_id: string
+          unique_visitors: number
+          view_count: number
+          view_date: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          portfolio_id: string
+          unique_visitors?: number
+          view_count?: number
+          view_date?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          portfolio_id?: string
+          unique_visitors?: number
+          view_count?: number
+          view_date?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_analytics_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      portfolio_link_clicks: {
+        Row: {
+          click_count: number
+          created_at: string
+          id: string
+          last_clicked_at: string | null
+          link_type: string
+          link_url: string
+          portfolio_id: string
+        }
+        Insert: {
+          click_count?: number
+          created_at?: string
+          id?: string
+          last_clicked_at?: string | null
+          link_type: string
+          link_url: string
+          portfolio_id: string
+        }
+        Update: {
+          click_count?: number
+          created_at?: string
+          id?: string
+          last_clicked_at?: string | null
+          link_type?: string
+          link_url?: string
+          portfolio_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_link_clicks_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolios: {
         Row: {
           about_text: string | null
@@ -24,8 +97,14 @@ export type Database = {
           hero_title: string | null
           id: string
           links: Json | null
+          parent_portfolio_id: string | null
           projects: Json | null
           published_at: string | null
+          quality_score: number | null
+          quality_suggestions: Json | null
+          resume_file_url: string | null
+          resume_text: string | null
+          resume_updated_at: string | null
           role: Database["public"]["Enums"]["portfolio_role"]
           skills: Json | null
           status: Database["public"]["Enums"]["portfolio_status"]
@@ -34,6 +113,8 @@ export type Database = {
           updated_at: string
           user_id: string
           username: string
+          version_emphasis: string | null
+          version_name: string | null
         }
         Insert: {
           about_text?: string | null
@@ -44,8 +125,14 @@ export type Database = {
           hero_title?: string | null
           id?: string
           links?: Json | null
+          parent_portfolio_id?: string | null
           projects?: Json | null
           published_at?: string | null
+          quality_score?: number | null
+          quality_suggestions?: Json | null
+          resume_file_url?: string | null
+          resume_text?: string | null
+          resume_updated_at?: string | null
           role: Database["public"]["Enums"]["portfolio_role"]
           skills?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
@@ -54,6 +141,8 @@ export type Database = {
           updated_at?: string
           user_id: string
           username: string
+          version_emphasis?: string | null
+          version_name?: string | null
         }
         Update: {
           about_text?: string | null
@@ -64,8 +153,14 @@ export type Database = {
           hero_title?: string | null
           id?: string
           links?: Json | null
+          parent_portfolio_id?: string | null
           projects?: Json | null
           published_at?: string | null
+          quality_score?: number | null
+          quality_suggestions?: Json | null
+          resume_file_url?: string | null
+          resume_text?: string | null
+          resume_updated_at?: string | null
           role?: Database["public"]["Enums"]["portfolio_role"]
           skills?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
@@ -74,8 +169,18 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string
+          version_emphasis?: string | null
+          version_name?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "portfolios_parent_portfolio_id_fkey"
+            columns: ["parent_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {
