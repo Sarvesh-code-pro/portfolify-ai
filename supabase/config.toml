@@ -1,1 +1,16 @@
 project_id = "fngeiieynhpcxypycqlk"
+
+[functions.generate-portfolio]
+verify_jwt = true
+
+[functions.parse-resume]
+verify_jwt = true
+
+[functions.evaluate-portfolio]
+verify_jwt = true
+
+[functions.sync-resume-portfolio]
+verify_jwt = true
+
+[functions.track-analytics]
+verify_jwt = false

@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Sparkles, ArrowLeft, ArrowRight, Code, Palette, Briefcase, Check } from "lucide-react";
+import { Sparkles, ArrowLeft, ArrowRight, Code, Palette, Briefcase, Check, FileText } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
 type Role = "developer" | "designer" | "product_manager";
@@ -136,7 +136,13 @@ export default function CreatePortfolio() {
             ))}
           </div>
 
-          <div className="mt-10 flex justify-end">
+          <div className="mt-10 flex flex-col sm:flex-row justify-between gap-4">
+            <Button variant="outline" size="lg" asChild>
+              <Link to="/create/resume">
+                <FileText className="w-4 h-4 mr-2" />
+                Create from Resume Instead
+              </Link>
+            </Button>
             <Button 
               variant="hero" 
               size="lg" 
