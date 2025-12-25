@@ -6,6 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation constants
+const MAX_RESUME_TEXT_LENGTH = 50000; // 50KB
+const MAX_PORTFOLIO_JSON_LENGTH = 100000; // 100KB
+
+function getSafeErrorMessage(error: unknown): string {
+  console.error("Full error details:", error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes("Rate limit") || error.message.includes("429")) {
+      return "Too many requests. Please try again later.";
+    }
+    if (error.message.includes("credits") || error.message.includes("402")) {
+      return "Service temporarily unavailable.";
+    }
+    if (error.message.includes("too long") || error.message.includes("Invalid sync")) {
+      return error.message;
+    }
+  }
+  return "Sync failed. Please try again.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,7 +37,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Authorization header required" }),
+        JSON.stringify({ error: "Authorization required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -38,15 +59,38 @@ serve(async (req) => {
 
     console.log("User authenticated:", user.id);
 
-    const { direction, portfolio, resumeText } = await req.json();
+    const requestBody = await req.text();
+    
+    // Input validation - check raw body size
+    if (requestBody.length > MAX_PORTFOLIO_JSON_LENGTH + MAX_RESUME_TEXT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Request data too large" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { direction, portfolio, resumeText } = JSON.parse(requestBody);
+    
+    // Validate inputs
+    if (resumeText && typeof resumeText === "string" && resumeText.length > MAX_RESUME_TEXT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Resume text too long (max 50KB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing required configuration: LOVABLE_API_KEY");
+      throw new Error("Service configuration error");
     }
 
     if (!direction || !["resume_to_portfolio", "portfolio_to_resume"].includes(direction)) {
-      throw new Error("Invalid sync direction");
+      return new Response(
+        JSON.stringify({ error: "Invalid sync direction" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     let systemPrompt = "";
@@ -96,7 +140,7 @@ Return ONLY valid JSON:
 ${JSON.stringify(portfolio, null, 2)}`;
     }
 
-    console.log(`Syncing ${direction}...`);
+    console.log(`Syncing ${direction} for user:`, user.id);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -118,18 +162,18 @@ ${JSON.stringify(portfolio, null, 2)}`;
       console.error("AI Gateway error:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again." }), {
+        return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted." }), {
+        return new Response(JSON.stringify({ error: "Service temporarily unavailable." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("AI sync failed");
+      throw new Error("AI processing failed");
     }
 
     const data = await response.json();
@@ -157,15 +201,28 @@ ${JSON.stringify(portfolio, null, 2)}`;
       }
     }
 
-    console.log("Sync completed successfully");
+    // Validate and sanitize output
+    if (result.skills) {
+      result.skills = Array.isArray(result.skills) ? result.skills.slice(0, 100) : [];
+    }
+    if (result.projects) {
+      result.projects = Array.isArray(result.projects) ? result.projects.slice(0, 20) : [];
+    }
+    if (result.experience) {
+      result.experience = Array.isArray(result.experience) ? result.experience.slice(0, 20) : [];
+    }
+    if (result.resumeText && result.resumeText.length > 50000) {
+      result.resumeText = result.resumeText.slice(0, 50000);
+    }
+
+    console.log("Sync completed successfully for user:", user.id);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Sync error:", error);
-    const message = error instanceof Error ? error.message : "Sync failed";
-    return new Response(JSON.stringify({ error: message }), {
+    const safeMessage = getSafeErrorMessage(error);
+    return new Response(JSON.stringify({ error: safeMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

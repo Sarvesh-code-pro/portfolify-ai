@@ -6,6 +6,27 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation constants
+const MAX_PROMPT_LENGTH = 5000;
+const MAX_FORM_FIELD_LENGTH = 2000;
+
+function getSafeErrorMessage(error: unknown): string {
+  console.error("Full error details:", error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes("Rate limit") || error.message.includes("429")) {
+      return "Too many requests. Please try again later.";
+    }
+    if (error.message.includes("credits") || error.message.includes("402")) {
+      return "Service temporarily unavailable.";
+    }
+    if (error.message.includes("too long") || error.message.includes("Invalid input")) {
+      return error.message;
+    }
+  }
+  return "Portfolio generation failed. Please try again.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,7 +37,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Authorization header required" }),
+        JSON.stringify({ error: "Authorization required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -39,10 +60,32 @@ serve(async (req) => {
     console.log("User authenticated:", user.id);
 
     const { role, mode, formData, prompt } = await req.json();
+    
+    // Input validation
+    if (prompt && typeof prompt === "string" && prompt.length > MAX_PROMPT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Prompt too long (max 5KB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (formData) {
+      const fields = ["fullName", "title", "about", "skills", "projects"];
+      for (const field of fields) {
+        if (formData[field] && typeof formData[field] === "string" && formData[field].length > MAX_FORM_FIELD_LENGTH) {
+          return new Response(
+            JSON.stringify({ error: `${field} is too long (max 2KB)` }),
+            { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
+      }
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing required configuration: LOVABLE_API_KEY");
+      throw new Error("Service configuration error");
     }
 
     const roleDescriptions: Record<string, string> = {
@@ -54,23 +97,26 @@ serve(async (req) => {
     let userPrompt = "";
     
     if (mode === "form" && formData) {
-      userPrompt = `Create a professional portfolio for a ${roleDescriptions[role]}.
+      userPrompt = `Create a professional portfolio for a ${roleDescriptions[role] || "professional"}.
 
-Name: ${formData.fullName}
-Title: ${formData.title}
-About: ${formData.about}
-Skills: ${formData.skills}
-Projects: ${formData.projects}
+Name: ${formData.fullName || ""}
+Title: ${formData.title || ""}
+About: ${formData.about || ""}
+Skills: ${formData.skills || ""}
+Projects: ${formData.projects || ""}
 
 Generate professional, recruiter-friendly content that sounds confident and accomplished. Make the language polished and impactful.`;
     } else if (mode === "prompt" && prompt) {
-      userPrompt = `Create a professional portfolio for a ${roleDescriptions[role]} based on this description:
+      userPrompt = `Create a professional portfolio for a ${roleDescriptions[role] || "professional"} based on this description:
 
 ${prompt}
 
 Generate professional, recruiter-friendly content that sounds confident and accomplished. Make the language polished and impactful.`;
     } else {
-      throw new Error("Invalid input mode or missing data");
+      return new Response(
+        JSON.stringify({ error: "Invalid input mode or missing data" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const systemPrompt = `You are an expert portfolio content writer. Generate portfolio content in JSON format only. The content should be professional, confident, and recruiter-friendly. Avoid generic phrases. Make it specific and impactful.
@@ -99,6 +145,8 @@ Return ONLY valid JSON with this exact structure:
   ]
 }`;
 
+    console.log("Generating portfolio for user:", user.id, "mode:", mode);
+
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -119,18 +167,18 @@ Return ONLY valid JSON with this exact structure:
       console.error("AI Gateway error:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+        return new Response(JSON.stringify({ error: "Service temporarily unavailable." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("AI generation failed");
+      throw new Error("AI processing failed");
     }
 
     const data = await response.json();
@@ -143,32 +191,39 @@ Return ONLY valid JSON with this exact structure:
     // Extract JSON from response
     let portfolioData;
     try {
-      // Try to parse directly first
       portfolioData = JSON.parse(content);
     } catch {
-      // Try to extract JSON from markdown code block
       const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
       if (jsonMatch) {
         portfolioData = JSON.parse(jsonMatch[1].trim());
       } else {
-        // Try to find JSON object in the text
         const jsonStart = content.indexOf("{");
         const jsonEnd = content.lastIndexOf("}");
         if (jsonStart !== -1 && jsonEnd !== -1) {
           portfolioData = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
         } else {
-          throw new Error("Could not parse AI response");
+          throw new Error("Could not parse response");
         }
       }
     }
+
+    // Validate and sanitize output
+    portfolioData.skills = Array.isArray(portfolioData.skills) ? portfolioData.skills.slice(0, 50) : [];
+    portfolioData.projects = Array.isArray(portfolioData.projects) ? portfolioData.projects.slice(0, 20) : [];
+    portfolioData.experience = Array.isArray(portfolioData.experience) ? portfolioData.experience.slice(0, 20) : [];
+    
+    if (portfolioData.about && portfolioData.about.length > 3000) {
+      portfolioData.about = portfolioData.about.slice(0, 3000);
+    }
+
+    console.log("Portfolio generated successfully for user:", user.id);
 
     return new Response(JSON.stringify(portfolioData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Generate portfolio error:", error);
-    const message = error instanceof Error ? error.message : "Generation failed";
-    return new Response(JSON.stringify({ error: message }), {
+    const safeMessage = getSafeErrorMessage(error);
+    return new Response(JSON.stringify({ error: safeMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
