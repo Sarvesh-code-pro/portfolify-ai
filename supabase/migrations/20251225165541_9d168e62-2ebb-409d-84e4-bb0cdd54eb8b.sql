@@ -1,0 +1,14 @@
+-- Add new profession values to the portfolio_role enum
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'data_scientist';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'devops_engineer';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'qa_engineer';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'security_engineer';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'mobile_developer';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'ux_researcher';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'content_writer';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'marketing_manager';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'brand_designer';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'business_analyst';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'project_manager';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'sales_engineer';
+ALTER TYPE public.portfolio_role ADD VALUE IF NOT EXISTS 'consultant';

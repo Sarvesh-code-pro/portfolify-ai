@@ -27,26 +27,120 @@ function getSafeErrorMessage(error: unknown): string {
 }
 
 const rolePrompts: Record<string, string> = {
+  // Tech roles
   developer: `You are crafting a portfolio for a SOFTWARE DEVELOPER. Emphasize:
 - Technical depth: Specific technologies, architectures, and systems built
 - Impact metrics: Performance improvements, scale handled, bugs fixed
 - Code quality: Testing practices, documentation, code reviews
 - Problem-solving: Complex technical challenges overcome
 - Collaboration: Cross-functional work, mentoring, open source contributions`,
-  
+
+  data_scientist: `You are crafting a portfolio for a DATA SCIENTIST. Emphasize:
+- ML/AI expertise: Models built, algorithms implemented, accuracy metrics
+- Data engineering: Pipelines, ETL processes, data infrastructure
+- Business impact: Revenue generated, costs saved, decisions influenced
+- Research: Publications, patents, novel approaches
+- Tools: Python, R, SQL, TensorFlow, PyTorch, cloud ML platforms`,
+
+  devops_engineer: `You are crafting a portfolio for a DEVOPS ENGINEER. Emphasize:
+- Infrastructure: Cloud platforms, containerization, orchestration
+- CI/CD: Pipeline optimization, deployment frequency, MTTR improvements
+- Reliability: Uptime SLAs, incident response, monitoring systems
+- Security: Compliance, vulnerability management, access controls
+- Cost optimization: Resource efficiency, cloud cost reduction`,
+
+  qa_engineer: `You are crafting a portfolio for a QA ENGINEER. Emphasize:
+- Testing expertise: Frameworks, methodologies, coverage metrics
+- Automation: Test automation, CI integration, tool development
+- Quality metrics: Defect detection rate, escape rate, test efficiency
+- Process improvement: Quality gates, shift-left initiatives
+- Tools: Selenium, Cypress, Jest, TestRail, performance testing`,
+
+  security_engineer: `You are crafting a portfolio for a SECURITY ENGINEER. Emphasize:
+- Security assessments: Penetration testing, vulnerability analysis, risk assessment
+- Incident response: Threat detection, forensics, remediation
+- Compliance: SOC2, ISO27001, GDPR, industry regulations
+- Security architecture: Zero trust, defense in depth, secure SDLC
+- Tools: SIEM, IDS/IPS, encryption, identity management`,
+
+  mobile_developer: `You are crafting a portfolio for a MOBILE DEVELOPER. Emphasize:
+- App development: iOS/Android/cross-platform, published apps
+- Performance: App store ratings, download counts, user retention
+- Technical skills: Swift, Kotlin, React Native, Flutter
+- User experience: Accessibility, offline support, animations
+- Integration: APIs, push notifications, analytics, monetization`,
+
+  // Creative roles
   designer: `You are crafting a portfolio for a DESIGNER. Emphasize:
 - Design process: Research, ideation, prototyping, iteration
 - User-centered thinking: User research, usability testing, accessibility
 - Visual craft: Typography, color theory, layout, motion design
 - Business impact: Conversion improvements, user satisfaction metrics
 - Tool proficiency: Design systems, prototyping tools, handoff processes`,
-  
+
+  ux_researcher: `You are crafting a portfolio for a UX RESEARCHER. Emphasize:
+- Research methods: User interviews, surveys, usability testing, A/B tests
+- Insights delivery: Personas, journey maps, research reports
+- Business impact: Design decisions influenced, product pivots informed
+- Data synthesis: Qualitative and quantitative analysis
+- Collaboration: Working with product, design, and engineering teams`,
+
+  content_writer: `You are crafting a portfolio for a CONTENT WRITER. Emphasize:
+- Writing samples: Blog posts, whitepapers, documentation, marketing copy
+- Content strategy: Editorial calendars, SEO optimization, content audits
+- Metrics: Traffic growth, engagement rates, conversion improvements
+- Versatility: Different tones, formats, and audiences
+- Research: Subject matter expertise, interviewing, fact-checking`,
+
+  marketing_manager: `You are crafting a portfolio for a MARKETING MANAGER. Emphasize:
+- Campaign results: ROI, conversion rates, customer acquisition cost
+- Growth metrics: MRR growth, user acquisition, retention improvements
+- Brand building: Positioning, messaging, market differentiation
+- Channel expertise: Digital, content, product marketing, partnerships
+- Team leadership: Team building, agency management, budget allocation`,
+
+  brand_designer: `You are crafting a portfolio for a BRAND DESIGNER. Emphasize:
+- Brand identities: Logo systems, visual languages, brand guidelines
+- Strategy: Brand positioning, competitive analysis, market research
+- Systems thinking: Design systems, component libraries, documentation
+- Versatility: Print, digital, environmental, motion
+- Client impact: Brand recognition improvements, business outcomes`,
+
+  // Business roles
   product_manager: `You are crafting a portfolio for a PRODUCT MANAGER. Emphasize:
 - Strategic thinking: Market analysis, competitive positioning, vision
 - Execution excellence: Roadmap delivery, stakeholder alignment, prioritization
 - Data-driven decisions: A/B testing, analytics, user research insights
 - Cross-functional leadership: Engineering, design, marketing collaboration
-- Business outcomes: Revenue growth, user acquisition, retention improvements`
+- Business outcomes: Revenue growth, user acquisition, retention improvements`,
+
+  business_analyst: `You are crafting a portfolio for a BUSINESS ANALYST. Emphasize:
+- Analysis skills: Requirements gathering, process mapping, gap analysis
+- Data analysis: SQL, Excel, BI tools, data visualization
+- Stakeholder management: Communication, documentation, presentations
+- Process improvement: Efficiency gains, cost reductions, automation
+- Domain expertise: Industry knowledge, regulatory understanding`,
+
+  project_manager: `You are crafting a portfolio for a PROJECT MANAGER. Emphasize:
+- Delivery track record: On-time, on-budget, scope management
+- Methodology expertise: Agile, Scrum, Waterfall, hybrid approaches
+- Team leadership: Team building, conflict resolution, performance management
+- Risk management: Mitigation strategies, contingency planning
+- Stakeholder communication: Status reporting, executive presentations`,
+
+  sales_engineer: `You are crafting a portfolio for a SALES ENGINEER. Emphasize:
+- Technical demonstrations: Product showcases, POCs, solution architecture
+- Deal support: Win rate, deal size, sales cycle reduction
+- Customer success: Implementation support, technical training, adoption
+- Technical expertise: Product knowledge, integration capabilities
+- Communication: Translating technical concepts for business audiences`,
+
+  consultant: `You are crafting a portfolio for a CONSULTANT. Emphasize:
+- Client engagements: Industries served, project scopes, outcomes delivered
+- Strategic frameworks: Methodologies, best practices, thought leadership
+- Business impact: Revenue growth, cost savings, efficiency improvements
+- Expertise areas: Specializations, certifications, publications
+- Relationship building: Client testimonials, repeat engagements`,
 };
 
 serve(async (req) => {

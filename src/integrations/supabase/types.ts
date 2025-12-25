@@ -277,7 +277,23 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      portfolio_role: "developer" | "designer" | "product_manager"
+      portfolio_role:
+        | "developer"
+        | "designer"
+        | "product_manager"
+        | "data_scientist"
+        | "devops_engineer"
+        | "qa_engineer"
+        | "security_engineer"
+        | "mobile_developer"
+        | "ux_researcher"
+        | "content_writer"
+        | "marketing_manager"
+        | "brand_designer"
+        | "business_analyst"
+        | "project_manager"
+        | "sales_engineer"
+        | "consultant"
       portfolio_status: "draft" | "published" | "unpublished"
     }
     CompositeTypes: {
@@ -406,7 +422,24 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      portfolio_role: ["developer", "designer", "product_manager"],
+      portfolio_role: [
+        "developer",
+        "designer",
+        "product_manager",
+        "data_scientist",
+        "devops_engineer",
+        "qa_engineer",
+        "security_engineer",
+        "mobile_developer",
+        "ux_researcher",
+        "content_writer",
+        "marketing_manager",
+        "brand_designer",
+        "business_analyst",
+        "project_manager",
+        "sales_engineer",
+        "consultant",
+      ],
       portfolio_status: ["draft", "published", "unpublished"],
     },
   },
