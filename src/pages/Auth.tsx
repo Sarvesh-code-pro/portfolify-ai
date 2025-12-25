@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Sparkles, ArrowLeft, Loader2 } from "lucide-react";
+import { getClientErrorMessage } from "@/lib/error-utils";
 
 export default function Auth() {
   const [searchParams] = useSearchParams();
@@ -54,10 +55,10 @@ export default function Auth() {
         if (error) throw error;
         toast({ title: "Welcome back!" });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       toast({ 
         title: "Error", 
-        description: error.message || "Something went wrong", 
+        description: getClientErrorMessage(error), 
         variant: "destructive" 
       });
     } finally {

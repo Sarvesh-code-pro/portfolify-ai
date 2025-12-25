@@ -6,6 +6,30 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation constants
+const MAX_RESUME_TEXT_LENGTH = 50000; // 50KB max
+const MAX_BASE64_LENGTH = 5000000; // ~5MB for PDF
+
+function getSafeErrorMessage(error: unknown): string {
+  console.error("Full error details:", error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes("Rate limit") || error.message.includes("429")) {
+      return "Too many requests. Please try again later.";
+    }
+    if (error.message.includes("credits") || error.message.includes("402")) {
+      return "Service temporarily unavailable.";
+    }
+    if (error.message.includes("too long") || error.message.includes("Input")) {
+      return error.message; // Safe to expose input validation errors
+    }
+    if (error.message.includes("No resume")) {
+      return "No resume content provided.";
+    }
+  }
+  return "Resume parsing failed. Please try again.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,7 +40,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Authorization header required" }),
+        JSON.stringify({ error: "Authorization required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -39,10 +63,27 @@ serve(async (req) => {
     console.log("User authenticated:", user.id);
 
     const { resumeText, resumeBase64 } = await req.json();
+    
+    // Input validation
+    if (resumeText && typeof resumeText === "string" && resumeText.length > MAX_RESUME_TEXT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Resume text too long (max 50KB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (resumeBase64 && typeof resumeBase64 === "string" && resumeBase64.length > MAX_BASE64_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Resume file too large (max 5MB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing required configuration: LOVABLE_API_KEY");
+      throw new Error("Service configuration error");
     }
 
     let textContent = resumeText || "";
@@ -126,7 +167,7 @@ Remember:
 - Include ALL contact info and links
 - Flag anything that seems incomplete in warnings`;
 
-    console.log("Calling AI to parse resume with enhanced extraction...");
+    console.log("Calling AI to parse resume, user:", user.id, "textLength:", textContent.length);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -148,18 +189,18 @@ Remember:
       console.error("AI Gateway error:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+        return new Response(JSON.stringify({ error: "Service temporarily unavailable." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("AI parsing failed");
+      throw new Error("AI processing failed");
     }
 
     const data = await response.json();
@@ -183,39 +224,41 @@ Remember:
         if (jsonStart !== -1 && jsonEnd !== -1) {
           parsedData = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
         } else {
-          throw new Error("Could not parse AI response");
+          throw new Error("Could not parse response");
         }
       }
     }
 
-    // Add the raw text for reference
+    // Validate and sanitize output
     parsedData.rawText = textContent;
     
-    // Ensure arrays exist even if empty
-    parsedData.skills = parsedData.skills || [];
-    parsedData.projects = parsedData.projects || [];
-    parsedData.experience = parsedData.experience || [];
-    parsedData.education = parsedData.education || [];
-    parsedData.certifications = parsedData.certifications || [];
-    parsedData.achievements = parsedData.achievements || [];
-    parsedData.warnings = parsedData.warnings || [];
-    parsedData.unmappedSections = parsedData.unmappedSections || [];
+    // Ensure arrays exist and are within limits
+    parsedData.skills = Array.isArray(parsedData.skills) ? parsedData.skills.slice(0, 100) : [];
+    parsedData.projects = Array.isArray(parsedData.projects) ? parsedData.projects.slice(0, 50) : [];
+    parsedData.experience = Array.isArray(parsedData.experience) ? parsedData.experience.slice(0, 50) : [];
+    parsedData.education = Array.isArray(parsedData.education) ? parsedData.education.slice(0, 20) : [];
+    parsedData.certifications = Array.isArray(parsedData.certifications) ? parsedData.certifications.slice(0, 50) : [];
+    parsedData.achievements = Array.isArray(parsedData.achievements) ? parsedData.achievements.slice(0, 50) : [];
+    parsedData.warnings = Array.isArray(parsedData.warnings) ? parsedData.warnings.slice(0, 20) : [];
+    parsedData.unmappedSections = Array.isArray(parsedData.unmappedSections) ? parsedData.unmappedSections.slice(0, 20) : [];
     parsedData.extractedLinks = parsedData.extractedLinks || {};
+    
+    // Truncate long text fields
+    if (parsedData.about && parsedData.about.length > 5000) {
+      parsedData.about = parsedData.about.slice(0, 5000);
+    }
 
-    console.log("Resume parsed successfully:");
+    console.log("Resume parsed successfully for user:", user.id);
     console.log("- Detected role:", parsedData.detectedRole);
     console.log("- Skills count:", parsedData.skills.length);
     console.log("- Experience count:", parsedData.experience.length);
-    console.log("- Projects count:", parsedData.projects.length);
-    console.log("- Warnings:", parsedData.warnings);
 
     return new Response(JSON.stringify(parsedData), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Parse resume error:", error);
-    const message = error instanceof Error ? error.message : "Parsing failed";
-    return new Response(JSON.stringify({ error: message }), {
+    const safeMessage = getSafeErrorMessage(error);
+    return new Response(JSON.stringify({ error: safeMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

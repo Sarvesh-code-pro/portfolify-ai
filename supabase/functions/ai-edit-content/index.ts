@@ -6,6 +6,10 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation constants
+const MAX_COMMAND_LENGTH = 1000;
+const MAX_CONTENT_LENGTH = 50000; // 50KB
+
 interface EditRequest {
   command: string;
   content: string;
@@ -15,6 +19,23 @@ interface EditRequest {
     role?: string;
     fullPortfolio?: any;
   };
+}
+
+function getSafeErrorMessage(error: unknown): string {
+  console.error("Full error details:", error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes("Rate limit") || error.message.includes("429")) {
+      return "Too many requests. Please try again later.";
+    }
+    if (error.message.includes("credits") || error.message.includes("402")) {
+      return "Service temporarily unavailable.";
+    }
+    if (error.message.includes("too long") || error.message.includes("required")) {
+      return error.message;
+    }
+  }
+  return "Content editing failed. Please try again.";
 }
 
 serve(async (req) => {
@@ -27,7 +48,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Authorization header required" }),
+        JSON.stringify({ error: "Authorization required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -51,22 +72,36 @@ serve(async (req) => {
 
     const { command, content, scope, sectionType, context }: EditRequest = await req.json();
 
+    // Input validation
     if (!command || !content) {
       return new Response(
         JSON.stringify({ error: "Command and content are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+    
+    if (typeof command === "string" && command.length > MAX_COMMAND_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Command too long (max 1KB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (typeof content === "string" && content.length > MAX_CONTENT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Content too long (max 50KB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing required configuration: LOVABLE_API_KEY");
+      throw new Error("Service configuration error");
     }
 
     console.log(
-      `[ai-edit-content] scope=${scope} section=${sectionType ?? "-"} cmd=${JSON.stringify(
-        command.slice(0, 80)
-      )} contentLen=${content.length}`
+      `[ai-edit-content] user=${user.id} scope=${scope} section=${sectionType ?? "-"} cmdLen=${command.length} contentLen=${content.length}`
     );
 
     const systemPrompt = `You are a professional content editor for portfolios and resumes. Apply the user's command to the provided content.
@@ -172,41 +207,46 @@ Return ONLY the improved content, nothing else.`;
     if (!response.ok) {
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }),
+          JSON.stringify({ error: "Too many requests. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       if (response.status === 402) {
         return new Response(
-          JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }),
+          JSON.stringify({ error: "Service temporarily unavailable." }),
           { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       const errorText = await response.text();
       console.error("AI gateway error:", response.status, errorText);
-      throw new Error(`AI gateway error: ${response.status}`);
+      throw new Error("AI processing failed");
     }
 
     const data = await response.json();
     const editedContent = data.choices?.[0]?.message?.content?.trim();
 
     if (!editedContent) {
-      throw new Error("No content returned from AI");
+      throw new Error("No content returned");
     }
+
+    // Validate output length
+    const safeEditedContent = editedContent.length > MAX_CONTENT_LENGTH 
+      ? editedContent.slice(0, MAX_CONTENT_LENGTH)
+      : editedContent;
 
     return new Response(
       JSON.stringify({ 
         success: true, 
-        editedContent,
+        editedContent: safeEditedContent,
         originalContent: content,
         command
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error in ai-edit-content:", error);
+    const safeMessage = getSafeErrorMessage(error);
     return new Response(
-      JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
+      JSON.stringify({ error: safeMessage }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

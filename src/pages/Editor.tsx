@@ -18,6 +18,7 @@ import { PortfolioAnalytics } from "@/components/editor/PortfolioAnalytics";
 import { VersionManager } from "@/components/editor/VersionManager";
 import { ABTestManager } from "@/components/editor/ABTestManager";
 import { AICommandInput } from "@/components/editor/AICommandInput";
+import { getClientErrorMessage } from "@/lib/error-utils";
 interface Project {
   title: string;
   description: string;
@@ -130,8 +131,8 @@ export default function Editor() {
 
       if (error) throw error;
       toast({ title: "Saved successfully!" });
-    } catch (error: any) {
-      toast({ title: "Save failed", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Save failed", description: getClientErrorMessage(error), variant: "destructive" });
     } finally {
       setSaving(false);
     }
@@ -158,8 +159,8 @@ export default function Editor() {
         title: newStatus === "published" ? "Portfolio published!" : "Portfolio unpublished",
         description: newStatus === "published" ? `Live at /${portfolio.username}` : undefined
       });
-    } catch (error: any) {
-      toast({ title: "Action failed", description: error.message, variant: "destructive" });
+    } catch (error: unknown) {
+      toast({ title: "Action failed", description: getClientErrorMessage(error), variant: "destructive" });
     } finally {
       setPublishing(false);
     }

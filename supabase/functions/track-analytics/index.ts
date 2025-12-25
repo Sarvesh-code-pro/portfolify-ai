@@ -6,6 +6,15 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation
+const MAX_URL_LENGTH = 2000;
+const MAX_LINK_TYPE_LENGTH = 100;
+
+function getSafeErrorMessage(error: unknown): string {
+  console.error("Full error details:", error);
+  return "Tracking failed. Please try again.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -14,12 +23,45 @@ serve(async (req) => {
   try {
     const { portfolioId, eventType, linkType, linkUrl } = await req.json();
 
-    if (!portfolioId) {
-      throw new Error("Portfolio ID is required");
+    // Input validation
+    if (!portfolioId || typeof portfolioId !== "string") {
+      return new Response(
+        JSON.stringify({ error: "Portfolio ID is required" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(portfolioId)) {
+      return new Response(
+        JSON.stringify({ error: "Invalid portfolio ID format" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (linkUrl && typeof linkUrl === "string" && linkUrl.length > MAX_URL_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Link URL too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (linkType && typeof linkType === "string" && linkType.length > MAX_LINK_TYPE_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Link type too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error("Missing required configuration");
+      throw new Error("Service configuration error");
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     const today = new Date().toISOString().split("T")[0];
@@ -91,9 +133,8 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Track analytics error:", error);
-    const message = error instanceof Error ? error.message : "Tracking failed";
-    return new Response(JSON.stringify({ error: message }), {
+    const safeMessage = getSafeErrorMessage(error);
+    return new Response(JSON.stringify({ error: safeMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });

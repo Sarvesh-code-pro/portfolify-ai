@@ -6,6 +6,26 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Input validation constants
+const MAX_PORTFOLIO_JSON_LENGTH = 100000; // 100KB max for portfolio JSON
+
+function getSafeErrorMessage(error: unknown): string {
+  console.error("Full error details:", error);
+  
+  if (error instanceof Error) {
+    if (error.message.includes("Rate limit") || error.message.includes("429")) {
+      return "Too many requests. Please try again later.";
+    }
+    if (error.message.includes("credits") || error.message.includes("402")) {
+      return "Service temporarily unavailable.";
+    }
+    if (error.message.includes("too large") || error.message.includes("No portfolio")) {
+      return error.message;
+    }
+  }
+  return "Portfolio evaluation failed. Please try again.";
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -16,7 +36,7 @@ serve(async (req) => {
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ error: "Authorization header required" }),
+        JSON.stringify({ error: "Authorization required" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -38,15 +58,29 @@ serve(async (req) => {
 
     console.log("User authenticated:", user.id);
 
-    const { portfolio } = await req.json();
+    const requestBody = await req.text();
+    
+    // Input validation - check raw body size
+    if (requestBody.length > MAX_PORTFOLIO_JSON_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: "Portfolio data too large (max 100KB)" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const { portfolio } = JSON.parse(requestBody);
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
 
     if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
+      console.error("Missing required configuration: LOVABLE_API_KEY");
+      throw new Error("Service configuration error");
     }
 
     if (!portfolio) {
-      throw new Error("No portfolio data provided");
+      return new Response(
+        JSON.stringify({ error: "No portfolio data provided" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     const systemPrompt = `You are an expert portfolio reviewer and career coach. Evaluate the portfolio from a recruiter's perspective.
@@ -75,7 +109,7 @@ Return ONLY valid JSON with this structure:
 Be constructive but honest. Prioritize suggestions that will have the biggest impact.`;
 
     const portfolioSummary = `
-Role: ${portfolio.role}
+Role: ${portfolio.role || "Not specified"}
 Hero Title: ${portfolio.hero_title || "Not set"}
 Hero Subtitle: ${portfolio.hero_subtitle || "Not set"}
 About: ${portfolio.about_text ? `${portfolio.about_text.length} characters` : "Empty"}
@@ -88,7 +122,7 @@ Full Content:
 ${JSON.stringify(portfolio, null, 2)}
 `;
 
-    console.log("Evaluating portfolio quality...");
+    console.log("Evaluating portfolio for user:", user.id);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -110,18 +144,18 @@ ${JSON.stringify(portfolio, null, 2)}
       console.error("AI Gateway error:", response.status, errorText);
       
       if (response.status === 429) {
-        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again in a moment." }), {
+        return new Response(JSON.stringify({ error: "Too many requests. Please try again later." }), {
           status: 429,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
       if (response.status === 402) {
-        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits to continue." }), {
+        return new Response(JSON.stringify({ error: "Service temporarily unavailable." }), {
           status: 402,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         });
       }
-      throw new Error("AI evaluation failed");
+      throw new Error("AI processing failed");
     }
 
     const data = await response.json();
@@ -144,20 +178,27 @@ ${JSON.stringify(portfolio, null, 2)}
         if (jsonStart !== -1 && jsonEnd !== -1) {
           evaluation = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
         } else {
-          throw new Error("Could not parse evaluation response");
+          throw new Error("Could not parse response");
         }
       }
     }
 
-    console.log("Portfolio evaluated, score:", evaluation.score);
+    // Validate and sanitize output
+    evaluation.score = typeof evaluation.score === "number" ? Math.min(100, Math.max(0, evaluation.score)) : 0;
+    evaluation.suggestions = Array.isArray(evaluation.suggestions) ? evaluation.suggestions.slice(0, 20) : [];
+    
+    if (evaluation.summary && evaluation.summary.length > 500) {
+      evaluation.summary = evaluation.summary.slice(0, 500);
+    }
+
+    console.log("Portfolio evaluated for user:", user.id, "score:", evaluation.score);
 
     return new Response(JSON.stringify(evaluation), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (error: unknown) {
-    console.error("Evaluate portfolio error:", error);
-    const message = error instanceof Error ? error.message : "Evaluation failed";
-    return new Response(JSON.stringify({ error: message }), {
+    const safeMessage = getSafeErrorMessage(error);
+    return new Response(JSON.stringify({ error: safeMessage }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
