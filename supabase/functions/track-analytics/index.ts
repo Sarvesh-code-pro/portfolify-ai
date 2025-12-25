@@ -9,10 +9,20 @@ const corsHeaders = {
 // Input validation
 const MAX_URL_LENGTH = 2000;
 const MAX_LINK_TYPE_LENGTH = 100;
+const VALID_LINK_TYPES = ["github", "linkedin", "website", "project", "email", "twitter", "dribbble", "behance"];
 
 function getSafeErrorMessage(error: unknown): string {
   console.error("Full error details:", error);
   return "Tracking failed. Please try again.";
+}
+
+function isValidUrl(urlString: string): boolean {
+  try {
+    const url = new URL(urlString);
+    return ["http:", "https:"].includes(url.protocol);
+  } catch {
+    return false;
+  }
 }
 
 serve(async (req) => {
@@ -21,7 +31,12 @@ serve(async (req) => {
   }
 
   try {
-    const { portfolioId, eventType, linkType, linkUrl } = await req.json();
+    // Support both 'action' (from client) and 'eventType' for backwards compatibility
+    const body = await req.json();
+    const portfolioId = body.portfolioId;
+    const eventType = body.eventType || body.action; // Support both parameter names
+    const linkType = body.linkType;
+    const linkUrl = body.linkUrl;
 
     // Input validation
     if (!portfolioId || typeof portfolioId !== "string") {
@@ -46,10 +61,29 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Validate URL format if provided
+    if (linkUrl && typeof linkUrl === "string") {
+      const urlToValidate = linkUrl.startsWith("http") ? linkUrl : `https://${linkUrl}`;
+      if (!isValidUrl(urlToValidate)) {
+        return new Response(
+          JSON.stringify({ error: "Invalid link URL format" }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+    }
     
     if (linkType && typeof linkType === "string" && linkType.length > MAX_LINK_TYPE_LENGTH) {
       return new Response(
         JSON.stringify({ error: "Link type too long" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate link type against whitelist
+    if (linkType && typeof linkType === "string" && !VALID_LINK_TYPES.includes(linkType.toLowerCase())) {
+      return new Response(
+        JSON.stringify({ error: "Invalid link type" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -63,6 +97,29 @@ serve(async (req) => {
     }
     
     const supabase = createClient(supabaseUrl, supabaseKey);
+
+    // Verify portfolio exists and is published before tracking
+    const { data: portfolio, error: portfolioError } = await supabase
+      .from("portfolios")
+      .select("id, status")
+      .eq("id", portfolioId)
+      .single();
+
+    if (portfolioError || !portfolio) {
+      console.log("Portfolio not found:", portfolioId);
+      return new Response(
+        JSON.stringify({ error: "Portfolio not found" }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (portfolio.status !== "published") {
+      console.log("Portfolio not published:", portfolioId);
+      return new Response(
+        JSON.stringify({ error: "Portfolio not published" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     const today = new Date().toISOString().split("T")[0];
 
@@ -96,8 +153,8 @@ serve(async (req) => {
       }
 
       console.log("View tracked for portfolio:", portfolioId);
-    } else if (eventType === "click" && linkType && linkUrl) {
-      // Track link click
+    } else if ((eventType === "click" || eventType === "link_click") && linkType && linkUrl) {
+      // Track link click - support both 'click' and 'link_click' event types
       const { data: existing } = await supabase
         .from("portfolio_link_clicks")
         .select("*")

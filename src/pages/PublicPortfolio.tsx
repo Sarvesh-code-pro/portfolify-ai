@@ -53,9 +53,10 @@ export default function PublicPortfolio() {
 
   useEffect(() => {
     const fetchPortfolio = async () => {
+      // Only select needed columns - exclude user_id to prevent account enumeration
       const { data, error } = await supabase
         .from("portfolios")
-        .select("*")
+        .select("id, username, role, status, hero_title, hero_subtitle, about_text, skills, projects, experience, education, links, theme, template, published_at, quality_score, created_at, updated_at")
         .eq("username", username)
         .eq("status", "published")
         .single();
