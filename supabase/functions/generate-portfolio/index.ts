@@ -6,7 +6,6 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-// Input validation constants
 const MAX_PROMPT_LENGTH = 5000;
 const MAX_FORM_FIELD_LENGTH = 2000;
 
@@ -27,13 +26,35 @@ function getSafeErrorMessage(error: unknown): string {
   return "Portfolio generation failed. Please try again.";
 }
 
+const rolePrompts: Record<string, string> = {
+  developer: `You are crafting a portfolio for a SOFTWARE DEVELOPER. Emphasize:
+- Technical depth: Specific technologies, architectures, and systems built
+- Impact metrics: Performance improvements, scale handled, bugs fixed
+- Code quality: Testing practices, documentation, code reviews
+- Problem-solving: Complex technical challenges overcome
+- Collaboration: Cross-functional work, mentoring, open source contributions`,
+  
+  designer: `You are crafting a portfolio for a DESIGNER. Emphasize:
+- Design process: Research, ideation, prototyping, iteration
+- User-centered thinking: User research, usability testing, accessibility
+- Visual craft: Typography, color theory, layout, motion design
+- Business impact: Conversion improvements, user satisfaction metrics
+- Tool proficiency: Design systems, prototyping tools, handoff processes`,
+  
+  product_manager: `You are crafting a portfolio for a PRODUCT MANAGER. Emphasize:
+- Strategic thinking: Market analysis, competitive positioning, vision
+- Execution excellence: Roadmap delivery, stakeholder alignment, prioritization
+- Data-driven decisions: A/B testing, analytics, user research insights
+- Cross-functional leadership: Engineering, design, marketing collaboration
+- Business outcomes: Revenue growth, user acquisition, retention improvements`
+};
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
   try {
-    // Authenticate user
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
@@ -61,7 +82,6 @@ serve(async (req) => {
 
     const { role, mode, formData, prompt } = await req.json();
     
-    // Input validation
     if (prompt && typeof prompt === "string" && prompt.length > MAX_PROMPT_LENGTH) {
       return new Response(
         JSON.stringify({ error: "Prompt too long (max 5KB)" }),
@@ -88,30 +108,26 @@ serve(async (req) => {
       throw new Error("Service configuration error");
     }
 
-    const roleDescriptions: Record<string, string> = {
-      developer: "software developer/engineer focusing on technical projects, code, and technology stack",
-      designer: "designer focusing on visual work, case studies, and design process",
-      product_manager: "product manager focusing on product launches, metrics, strategy, and leadership"
-    };
+    const roleContext = rolePrompts[role] || rolePrompts.developer;
 
     let userPrompt = "";
     
     if (mode === "form" && formData) {
-      userPrompt = `Create a professional portfolio for a ${roleDescriptions[role] || "professional"}.
+      userPrompt = `Create a portfolio based on this information:
 
 Name: ${formData.fullName || ""}
-Title: ${formData.title || ""}
-About: ${formData.about || ""}
+Current Title: ${formData.title || ""}
+Background: ${formData.about || ""}
 Skills: ${formData.skills || ""}
-Projects: ${formData.projects || ""}
+Key Projects: ${formData.projects || ""}
 
-Generate professional, recruiter-friendly content that sounds confident and accomplished. Make the language polished and impactful.`;
+Transform this into a compelling, recruiter-ready portfolio. Elevate the language to sound confident and accomplished while staying authentic to the provided information.`;
     } else if (mode === "prompt" && prompt) {
-      userPrompt = `Create a professional portfolio for a ${roleDescriptions[role] || "professional"} based on this description:
+      userPrompt = `Create a portfolio based on this description:
 
 ${prompt}
 
-Generate professional, recruiter-friendly content that sounds confident and accomplished. Make the language polished and impactful.`;
+Transform this into a compelling, recruiter-ready portfolio. Infer appropriate skills, projects, and experience based on the description. Make the content sound confident and accomplished.`;
     } else {
       return new Response(
         JSON.stringify({ error: "Invalid input mode or missing data" }),
@@ -119,33 +135,21 @@ Generate professional, recruiter-friendly content that sounds confident and acco
       );
     }
 
-    const systemPrompt = `You are an expert portfolio content writer. Generate portfolio content in JSON format only. The content should be professional, confident, and recruiter-friendly. Avoid generic phrases. Make it specific and impactful.
+    const systemPrompt = `You are a professional portfolio writer who creates compelling content that gets interviews.
 
-Return ONLY valid JSON with this exact structure:
-{
-  "heroTitle": "Name - Professional Title",
-  "heroSubtitle": "One impactful sentence about what they do",
-  "about": "2-3 professional paragraphs about their experience and expertise",
-  "skills": ["skill1", "skill2", "skill3", ...],
-  "projects": [
-    {
-      "title": "Project Name",
-      "description": "What the project does and impact",
-      "technologies": ["tech1", "tech2"],
-      "link": ""
-    }
-  ],
-  "experience": [
-    {
-      "company": "Company Name",
-      "role": "Job Title",
-      "period": "2020 - Present",
-      "description": "What they accomplished"
-    }
-  ]
-}`;
+${roleContext}
 
-    console.log("Generating portfolio for user:", user.id, "mode:", mode);
+WRITING PRINCIPLES:
+1. LEAD WITH IMPACT: Start descriptions with results, not responsibilities
+2. QUANTIFY EVERYTHING: Use numbers, percentages, timeframes wherever possible
+3. ACTIVE VOICE: "Built", "Led", "Designed", "Launched" - not "Was responsible for"
+4. AVOID CLICHÉS: No "passionate", "driven", "team player" - show, don't tell
+5. SPECIFICITY: Name technologies, methodologies, and frameworks explicitly
+6. RECRUITER-OPTIMIZED: Keywords that pass ATS and catch human attention
+
+Call the generate_portfolio function with the complete portfolio content.`;
+
+    console.log("Generating portfolio for user:", user.id, "mode:", mode, "role:", role);
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -159,6 +163,72 @@ Return ONLY valid JSON with this exact structure:
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt }
         ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "generate_portfolio",
+              description: "Generate complete portfolio content optimized for recruiters",
+              parameters: {
+                type: "object",
+                properties: {
+                  heroTitle: { 
+                    type: "string",
+                    description: "Name - Professional Title (e.g., 'Alex Chen - Senior Product Designer')"
+                  },
+                  heroSubtitle: { 
+                    type: "string",
+                    description: "One powerful sentence capturing their unique value proposition (50-100 chars)"
+                  },
+                  about: { 
+                    type: "string",
+                    description: "2-3 paragraphs: opening hook, core expertise, what drives them. 200-400 words."
+                  },
+                  skills: { 
+                    type: "array", 
+                    items: { type: "string" },
+                    description: "8-15 most relevant skills, ordered by importance"
+                  },
+                  projects: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        title: { type: "string" },
+                        description: { 
+                          type: "string",
+                          description: "2-3 sentences: what it is, what they did, what impact it had"
+                        },
+                        technologies: { type: "array", items: { type: "string" } },
+                        link: { type: "string" }
+                      },
+                      required: ["title", "description", "technologies"]
+                    },
+                    description: "2-5 most impressive projects"
+                  },
+                  experience: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        company: { type: "string" },
+                        role: { type: "string" },
+                        period: { type: "string" },
+                        description: { 
+                          type: "string",
+                          description: "3-5 bullet points as a single string, each starting with action verb and including metrics"
+                        }
+                      },
+                      required: ["company", "role", "period", "description"]
+                    }
+                  }
+                },
+                required: ["heroTitle", "heroSubtitle", "about", "skills", "projects", "experience"]
+              }
+            }
+          }
+        ],
+        tool_choice: { type: "function", function: { name: "generate_portfolio" } }
       }),
     });
 
@@ -182,27 +252,39 @@ Return ONLY valid JSON with this exact structure:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content;
-
-    if (!content) {
-      throw new Error("No content generated");
-    }
-
-    // Extract JSON from response
+    
     let portfolioData;
-    try {
-      portfolioData = JSON.parse(content);
-    } catch {
-      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
-      if (jsonMatch) {
-        portfolioData = JSON.parse(jsonMatch[1].trim());
-      } else {
-        const jsonStart = content.indexOf("{");
-        const jsonEnd = content.lastIndexOf("}");
-        if (jsonStart !== -1 && jsonEnd !== -1) {
-          portfolioData = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
+    
+    // Handle tool call response
+    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    if (toolCall?.function?.arguments) {
+      try {
+        portfolioData = JSON.parse(toolCall.function.arguments);
+      } catch (e) {
+        console.error("Failed to parse tool call arguments:", e);
+        throw new Error("Could not parse response");
+      }
+    } else {
+      // Fallback to content parsing
+      const content = data.choices?.[0]?.message?.content;
+      if (!content) {
+        throw new Error("No content generated");
+      }
+
+      try {
+        portfolioData = JSON.parse(content);
+      } catch {
+        const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+          portfolioData = JSON.parse(jsonMatch[1].trim());
         } else {
-          throw new Error("Could not parse response");
+          const jsonStart = content.indexOf("{");
+          const jsonEnd = content.lastIndexOf("}");
+          if (jsonStart !== -1 && jsonEnd !== -1) {
+            portfolioData = JSON.parse(content.slice(jsonStart, jsonEnd + 1));
+          } else {
+            throw new Error("Could not parse response");
+          }
         }
       }
     }

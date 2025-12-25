@@ -247,18 +247,25 @@ export function AICommandInput({ portfolio, onUpdate, onSave }: AICommandInputPr
 
       // Apply the update
       if (scope === "portfolio") {
-        const updates: Record<string, any> =
-          data?.updates && typeof data.updates === "object"
-            ? data.updates
-            : (() => {
-                try {
-                  return JSON.parse(String(data.editedContent));
-                } catch {
-                  throw new Error(
-                    "AI returned an unexpected format for a full-portfolio edit. Try editing a specific section instead."
-                  );
-                }
-              })();
+        // Handle structured patch response from tool calling
+        let updates: Record<string, any>;
+        
+        if (data?.isStructuredPatch && data?.patchData) {
+          // New structured response format
+          updates = data.patchData;
+        } else if (data?.updates && typeof data.updates === "object") {
+          // Legacy updates format
+          updates = data.updates;
+        } else {
+          // Fallback: try to parse editedContent as JSON
+          try {
+            updates = JSON.parse(String(data.editedContent));
+          } catch {
+            throw new Error(
+              "AI returned an unexpected format for a full-portfolio edit. Try editing a specific section instead."
+            );
+          }
+        }
 
         const afterSnapshot = { ...beforeSnapshot, ...updates };
 
