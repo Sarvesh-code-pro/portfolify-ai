@@ -103,9 +103,27 @@ EXTRACTION PRINCIPLES:
 5. IDENTIFY ROLE FIT: Analyze the overall profile to determine best-fit role category
 
 ROLE DETECTION CRITERIA:
-- "developer": Software engineering, coding, technical architecture, DevOps, data engineering
-- "designer": UI/UX, graphic design, product design, visual design, design systems
-- "product_manager": Product strategy, roadmaps, stakeholder management, agile/scrum leadership
+TECH ROLES:
+- "developer": Software engineering, backend/frontend development, full-stack, web development
+- "data_scientist": Machine learning, AI, data analysis, statistics, research, analytics
+- "devops_engineer": Infrastructure, CI/CD, cloud ops, SRE, platform engineering
+- "qa_engineer": Testing, QA, automation, quality assurance, test engineering
+- "security_engineer": Cybersecurity, penetration testing, security audits, compliance
+- "mobile_developer": iOS, Android, React Native, Flutter, mobile app development
+
+CREATIVE ROLES:
+- "designer": UI/UX, product design, visual design, interaction design
+- "ux_researcher": User research, usability testing, user interviews, research methods
+- "content_writer": Copywriting, technical writing, content strategy, blogging
+- "marketing_manager": Digital marketing, growth, campaigns, brand marketing
+- "brand_designer": Brand identity, visual branding, logo design, style guides
+
+BUSINESS ROLES:
+- "product_manager": Product strategy, roadmaps, stakeholder management, agile leadership
+- "business_analyst": Business analysis, requirements, process improvement
+- "project_manager": Project management, PMO, Scrum Master, delivery management
+- "sales_engineer": Technical sales, solutions engineering, pre-sales, demos
+- "consultant": Management consulting, strategy consulting, advisory
 
 Call the extract_resume_data function with all parsed information.`;
 
@@ -140,7 +158,11 @@ Remember: Preserve all metrics, achievements, and specific details exactly as wr
                 properties: {
                   detectedRole: { 
                     type: "string", 
-                    enum: ["developer", "designer", "product_manager"],
+                    enum: [
+                      "developer", "data_scientist", "devops_engineer", "qa_engineer", "security_engineer", "mobile_developer",
+                      "designer", "ux_researcher", "content_writer", "marketing_manager", "brand_designer",
+                      "product_manager", "business_analyst", "project_manager", "sales_engineer", "consultant"
+                    ],
                     description: "Best-fit role based on experience and skills"
                   },
                   heroTitle: { 
