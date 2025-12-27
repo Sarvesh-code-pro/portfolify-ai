@@ -12,6 +12,7 @@ import CreateFromResume from "./pages/CreateFromResume";
 import PortfolioDetails from "./pages/PortfolioDetails";
 import Editor from "./pages/Editor";
 import PublicPortfolio from "./pages/PublicPortfolio";
+import PublicLinkPortfolio from "./pages/PublicLinkPortfolio";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/create/details" element={<PortfolioDetails />} />
             <Route path="/editor/:id" element={<Editor />} />
             <Route path="/p/:username" element={<PublicPortfolio />} />
+            <Route path="/link/:slug" element={<PublicLinkPortfolio />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
