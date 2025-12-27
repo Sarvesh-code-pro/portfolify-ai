@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, Save, Globe, Eye, EyeOff, Loader2, Plus, Trash2, 
-  GripVertical, ExternalLink, Settings, Palette, BarChart3, FileText, GitBranch, Star
+  GripVertical, ExternalLink, Settings, Palette, BarChart3, FileText, GitBranch, Star, Link as LinkIcon
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { PortfolioPreview } from "@/components/editor/PortfolioPreview";
@@ -18,6 +18,7 @@ import { PortfolioAnalytics } from "@/components/editor/PortfolioAnalytics";
 import { VersionManager } from "@/components/editor/VersionManager";
 import { ABTestManager } from "@/components/editor/ABTestManager";
 import { AICommandInput } from "@/components/editor/AICommandInput";
+import { PublicLinksManager } from "@/components/editor/PublicLinksManager";
 import { getClientErrorMessage } from "@/lib/error-utils";
 interface Project {
   title: string;
@@ -562,6 +563,27 @@ export default function Editor() {
                     </>
                   )}
                 </div>
+
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mt-6 mb-2 flex items-center gap-2">
+                  <LinkIcon className="w-4 h-4" />
+                  Custom Links
+                </h3>
+                {user && (
+                  <PublicLinksManager 
+                    portfolioId={portfolio.id}
+                    userId={user.id}
+                    defaultSectionVisibility={{
+                      hero: true,
+                      about: true,
+                      skills: true,
+                      projects: true,
+                      experience: true,
+                      education: true,
+                      testimonials: true,
+                      contact: true
+                    }}
+                  />
+                )}
 
                 <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mt-6 mb-2">Analytics</h3>
                 <PortfolioAnalytics 
