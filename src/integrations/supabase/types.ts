@@ -144,10 +144,61 @@ export type Database = {
           },
         ]
       }
+      portfolio_links: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean
+          name: string
+          portfolio_id: string
+          section_visibility: Json | null
+          slug: string
+          updated_at: string
+          user_id: string
+          view_count: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          portfolio_id: string
+          section_visibility?: Json | null
+          slug: string
+          updated_at?: string
+          user_id: string
+          view_count?: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          portfolio_id?: string
+          section_visibility?: Json | null
+          slug?: string
+          updated_at?: string
+          user_id?: string
+          view_count?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "portfolio_links_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       portfolios: {
         Row: {
           about_text: string | null
+          certificates: Json | null
+          color_mode: string | null
+          contact_settings: Json | null
           created_at: string
+          custom_sections: Json | null
           education: Json | null
           experience: Json | null
           hero_subtitle: string | null
@@ -155,6 +206,7 @@ export type Database = {
           id: string
           links: Json | null
           parent_portfolio_id: string | null
+          profile_picture_url: string | null
           projects: Json | null
           published_at: string | null
           quality_score: number | null
@@ -163,19 +215,29 @@ export type Database = {
           resume_text: string | null
           resume_updated_at: string | null
           role: Database["public"]["Enums"]["portfolio_role"]
+          section_order: Json | null
+          section_titles: Json | null
+          section_visibility: Json | null
+          seo_settings: Json | null
           skills: Json | null
           status: Database["public"]["Enums"]["portfolio_status"]
           template: string
+          testimonials: Json | null
           theme: Json | null
           updated_at: string
           user_id: string
           username: string
           version_emphasis: string | null
+          version_history: Json | null
           version_name: string | null
         }
         Insert: {
           about_text?: string | null
+          certificates?: Json | null
+          color_mode?: string | null
+          contact_settings?: Json | null
           created_at?: string
+          custom_sections?: Json | null
           education?: Json | null
           experience?: Json | null
           hero_subtitle?: string | null
@@ -183,6 +245,7 @@ export type Database = {
           id?: string
           links?: Json | null
           parent_portfolio_id?: string | null
+          profile_picture_url?: string | null
           projects?: Json | null
           published_at?: string | null
           quality_score?: number | null
@@ -191,19 +254,29 @@ export type Database = {
           resume_text?: string | null
           resume_updated_at?: string | null
           role: Database["public"]["Enums"]["portfolio_role"]
+          section_order?: Json | null
+          section_titles?: Json | null
+          section_visibility?: Json | null
+          seo_settings?: Json | null
           skills?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
           template?: string
+          testimonials?: Json | null
           theme?: Json | null
           updated_at?: string
           user_id: string
           username: string
           version_emphasis?: string | null
+          version_history?: Json | null
           version_name?: string | null
         }
         Update: {
           about_text?: string | null
+          certificates?: Json | null
+          color_mode?: string | null
+          contact_settings?: Json | null
           created_at?: string
+          custom_sections?: Json | null
           education?: Json | null
           experience?: Json | null
           hero_subtitle?: string | null
@@ -211,6 +284,7 @@ export type Database = {
           id?: string
           links?: Json | null
           parent_portfolio_id?: string | null
+          profile_picture_url?: string | null
           projects?: Json | null
           published_at?: string | null
           quality_score?: number | null
@@ -219,14 +293,20 @@ export type Database = {
           resume_text?: string | null
           resume_updated_at?: string | null
           role?: Database["public"]["Enums"]["portfolio_role"]
+          section_order?: Json | null
+          section_titles?: Json | null
+          section_visibility?: Json | null
+          seo_settings?: Json | null
           skills?: Json | null
           status?: Database["public"]["Enums"]["portfolio_status"]
           template?: string
+          testimonials?: Json | null
           theme?: Json | null
           updated_at?: string
           user_id?: string
           username?: string
           version_emphasis?: string | null
+          version_history?: Json | null
           version_name?: string | null
         }
         Relationships: [
