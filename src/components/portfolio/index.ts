@@ -1,0 +1,8 @@
+export { PortfolioHero } from './PortfolioHero';
+export { PortfolioAbout } from './PortfolioAbout';
+export { PortfolioSkills } from './PortfolioSkills';
+export { PortfolioProjects } from './PortfolioProjects';
+export { PortfolioExperience } from './PortfolioExperience';
+export { PortfolioTestimonials } from './PortfolioTestimonials';
+export { PortfolioContact } from './PortfolioContact';
+export { PortfolioFooter } from './PortfolioFooter';
