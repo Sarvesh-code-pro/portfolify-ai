@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { 
   Sparkles, ArrowLeft, ArrowRight, Code, Palette, Briefcase, Check, FileText,
   Database, Server, Bug, Shield, Smartphone, Search, PenTool, Megaphone, 
-  Layers, BarChart3, FolderKanban, Users, LineChart
+  Layers, BarChart3, FolderKanban, Users, LineChart, Linkedin
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 
@@ -161,22 +161,32 @@ export default function CreatePortfolio() {
             ))}
           </div>
 
-          <div className="mt-10 flex flex-col sm:flex-row justify-between gap-4">
-            <Button variant="outline" size="lg" asChild>
-              <Link to="/create/resume">
-                <FileText className="w-4 h-4 mr-2" />
-                Create from Resume Instead
-              </Link>
-            </Button>
-            <Button 
-              variant="hero" 
-              size="lg" 
-              onClick={handleContinue}
-              disabled={!selectedRole}
-            >
-              Continue
-              <ArrowRight className="w-4 h-4 ml-2" />
-            </Button>
+          <div className="mt-10 flex flex-col gap-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div className="flex flex-col sm:flex-row gap-3">
+                <Button variant="outline" size="lg" asChild>
+                  <Link to="/create/resume">
+                    <FileText className="w-4 h-4 mr-2" />
+                    Create from Resume
+                  </Link>
+                </Button>
+                <Button variant="outline" size="lg" asChild className="border-[#0A66C2]/30 hover:border-[#0A66C2] hover:bg-[#0A66C2]/5">
+                  <Link to="/create/linkedin">
+                    <Linkedin className="w-4 h-4 mr-2 text-[#0A66C2]" />
+                    Import from LinkedIn
+                  </Link>
+                </Button>
+              </div>
+              <Button 
+                variant="hero" 
+                size="lg" 
+                onClick={handleContinue}
+                disabled={!selectedRole}
+              >
+                Continue
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </Button>
+            </div>
           </div>
         </div>
       </div>
