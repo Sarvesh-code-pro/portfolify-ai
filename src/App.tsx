@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import CreatePortfolio from "./pages/CreatePortfolio";
 import CreateFromResume from "./pages/CreateFromResume";
+import CreateFromLinkedIn from "./pages/CreateFromLinkedIn";
 import PortfolioDetails from "./pages/PortfolioDetails";
 import Editor from "./pages/Editor";
 import PublicPortfolio from "./pages/PublicPortfolio";
@@ -30,6 +31,7 @@ const App = () => (
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/create" element={<CreatePortfolio />} />
             <Route path="/create/resume" element={<CreateFromResume />} />
+            <Route path="/create/linkedin" element={<CreateFromLinkedIn />} />
             <Route path="/create/details" element={<PortfolioDetails />} />
             <Route path="/editor/:id" element={<Editor />} />
             <Route path="/p/:username" element={<PublicPortfolio />} />
