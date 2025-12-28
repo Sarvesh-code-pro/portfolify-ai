@@ -1,24 +1,30 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Github, Linkedin, Globe, ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { Helmet } from "react-helmet-async";
+import {
+  PortfolioHero,
+  PortfolioAbout,
+  PortfolioSkills,
+  PortfolioProjects,
+  PortfolioExperience,
+  PortfolioTestimonials,
+  PortfolioContact,
+  PortfolioFooter,
+} from "@/components/portfolio";
+import type { 
+  Portfolio, 
+  Project, 
+  Experience, 
+  Testimonial, 
+  ContactSettings, 
+  SEOSettings,
+  SectionVisibility,
+  SectionTitles
+} from "@/types/portfolio";
 
-interface Project {
-  title: string;
-  description: string;
-  technologies: string[];
-  link: string;
-}
-
-interface Experience {
-  company: string;
-  role: string;
-  period: string;
-  description: string;
-}
-
-interface Portfolio {
+interface PortfolioData {
   id: string;
   username: string;
   role: string;
@@ -29,14 +35,50 @@ interface Portfolio {
   skills: string[];
   projects: Project[];
   experience: Experience[];
-  links: { github?: string; linkedin?: string; website?: string };
+  education: any[];
+  links: { github?: string; linkedin?: string; website?: string; twitter?: string };
   template: string;
   theme: { primaryColor: string; backgroundColor: string; textColor: string };
+  profile_picture_url: string | null;
+  testimonials: Testimonial[];
+  contact_settings: ContactSettings;
+  seo_settings: SEOSettings;
+  section_visibility: SectionVisibility;
+  section_titles: SectionTitles;
 }
+
+const defaultSectionVisibility: SectionVisibility = {
+  hero: true,
+  about: true,
+  skills: true,
+  projects: true,
+  experience: true,
+  education: true,
+  testimonials: true,
+  contact: true,
+};
+
+const defaultSectionTitles: SectionTitles = {
+  hero: "Hero",
+  about: "About Me",
+  skills: "Skills & Expertise",
+  projects: "Featured Projects",
+  experience: "Experience",
+  education: "Education",
+  testimonials: "Testimonials",
+  contact: "Get In Touch",
+};
+
+const defaultContactSettings: ContactSettings = {
+  email: null,
+  whatsapp: null,
+  show_form: true,
+  sticky_button: false,
+};
 
 export default function PublicPortfolio() {
   const { username } = useParams<{ username: string }>();
-  const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
@@ -53,10 +95,9 @@ export default function PublicPortfolio() {
 
   useEffect(() => {
     const fetchPortfolio = async () => {
-      // Only select needed columns - exclude user_id to prevent account enumeration
       const { data, error } = await supabase
         .from("portfolios")
-        .select("id, username, role, status, hero_title, hero_subtitle, about_text, skills, projects, experience, education, links, theme, template, published_at, quality_score, created_at, updated_at")
+        .select("id, username, role, status, hero_title, hero_subtitle, about_text, skills, projects, experience, education, links, theme, template, profile_picture_url, testimonials, contact_settings, seo_settings, section_visibility, section_titles")
         .eq("username", username)
         .eq("status", "published")
         .single();
@@ -81,8 +122,14 @@ export default function PublicPortfolio() {
         skills: Array.isArray(data.skills) ? data.skills as string[] : [],
         projects: Array.isArray(data.projects) ? data.projects as unknown as Project[] : [],
         experience: Array.isArray(data.experience) ? data.experience as unknown as Experience[] : [],
-        links: data.links as Portfolio["links"] || {},
-        theme: data.theme as Portfolio["theme"] || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" }
+        education: Array.isArray(data.education) ? data.education : [],
+        links: data.links as PortfolioData["links"] || {},
+        theme: data.theme as PortfolioData["theme"] || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" },
+        testimonials: Array.isArray(data.testimonials) ? data.testimonials as unknown as Testimonial[] : [],
+        contact_settings: (data.contact_settings as unknown as ContactSettings) || defaultContactSettings,
+        seo_settings: (data.seo_settings as unknown as SEOSettings) || { meta_title: null, meta_description: null, favicon_url: null, og_image_url: null },
+        section_visibility: data.section_visibility as SectionVisibility || defaultSectionVisibility,
+        section_titles: data.section_titles as SectionTitles || defaultSectionTitles,
       });
       setLoading(false);
     };
@@ -95,7 +142,10 @@ export default function PublicPortfolio() {
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-muted-foreground">Loading portfolio...</p>
+        </div>
       </div>
     );
   }
@@ -103,10 +153,18 @@ export default function PublicPortfolio() {
   if (notFound || !portfolio) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <h1 className="text-4xl font-bold mb-4">Portfolio not found</h1>
-          <p className="text-muted-foreground mb-6">This portfolio doesn't exist or isn't published yet.</p>
-          <a href="/" className="text-primary hover:underline inline-flex items-center gap-2">
+        <div className="text-center max-w-md mx-auto px-6">
+          <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">🔍</span>
+          </div>
+          <h1 className="text-3xl font-bold mb-4">Portfolio Not Found</h1>
+          <p className="text-muted-foreground mb-8">
+            This portfolio doesn't exist or hasn't been published yet.
+          </p>
+          <a 
+            href="/" 
+            className="inline-flex items-center gap-2 text-primary hover:underline"
+          >
             <ArrowLeft className="w-4 h-4" />
             Back to Portfolify
           </a>
@@ -115,205 +173,110 @@ export default function PublicPortfolio() {
     );
   }
 
-  const { theme, template } = portfolio;
-  const name = portfolio.hero_title?.split(" - ")[0] || "Portfolio";
+  const visibility = portfolio.section_visibility;
+  const titles = portfolio.section_titles;
+  const name = portfolio.hero_title?.split(" - ")[0] || portfolio.username;
+  const titleParts = portfolio.hero_title?.split(" - ") || [];
+  const displayTitle = titleParts[1] || portfolio.role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+
+  // Calculate stats
+  const stats = {
+    projects: portfolio.projects.length,
+    experience: portfolio.experience.length,
+    clients: portfolio.testimonials.length,
+  };
 
   return (
     <>
       <Helmet>
-        <title>{portfolio.hero_title || "Portfolio"} | Portfolify</title>
-        <meta name="description" content={portfolio.hero_subtitle || portfolio.about_text?.slice(0, 160) || "Professional portfolio"} />
-        <meta property="og:title" content={portfolio.hero_title || "Portfolio"} />
-        <meta property="og:description" content={portfolio.hero_subtitle || ""} />
+        <title>{portfolio.seo_settings?.meta_title || portfolio.hero_title || "Portfolio"} | Portfolify</title>
+        <meta 
+          name="description" 
+          content={portfolio.seo_settings?.meta_description || portfolio.hero_subtitle || portfolio.about_text?.slice(0, 160) || "Professional portfolio"} 
+        />
+        <meta property="og:title" content={portfolio.seo_settings?.meta_title || portfolio.hero_title || "Portfolio"} />
+        <meta property="og:description" content={portfolio.seo_settings?.meta_description || portfolio.hero_subtitle || ""} />
+        {portfolio.seo_settings?.og_image_url && (
+          <meta property="og:image" content={portfolio.seo_settings.og_image_url} />
+        )}
+        {portfolio.seo_settings?.favicon_url && (
+          <link rel="icon" href={portfolio.seo_settings.favicon_url} />
+        )}
         <meta name="robots" content="index, follow" />
       </Helmet>
 
-      <div 
-        className="min-h-screen"
-        style={{ 
-          backgroundColor: theme.backgroundColor,
-          color: theme.textColor
-        }}
-      >
-        <div className="max-w-4xl mx-auto px-6 py-16">
-          {/* Hero */}
-          <section className="text-center mb-20">
-            <h1 
-              className="text-5xl md:text-6xl font-bold mb-4"
-              style={{ fontFamily: template === "elegant" ? "serif" : "inherit" }}
-            >
-              {portfolio.hero_title || "Your Name"}
-            </h1>
-            <p className="text-xl md:text-2xl opacity-70 max-w-2xl mx-auto">
-              {portfolio.hero_subtitle || "Your tagline goes here"}
-            </p>
-            
-            {/* Links */}
-            <div className="flex items-center justify-center gap-4 mt-8">
-              {portfolio.links.github && (
-                <a 
-                  href={portfolio.links.github.startsWith("http") ? portfolio.links.github : `https://${portfolio.links.github}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackLinkClick("github", portfolio.links.github!)}
-                  className="p-3 rounded-full transition-colors hover:opacity-70"
-                  style={{ backgroundColor: `${theme.primaryColor}20` }}
-                >
-                  <Github className="w-5 h-5" style={{ color: theme.primaryColor }} />
-                </a>
-              )}
-              {portfolio.links.linkedin && (
-                <a 
-                  href={portfolio.links.linkedin.startsWith("http") ? portfolio.links.linkedin : `https://${portfolio.links.linkedin}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackLinkClick("linkedin", portfolio.links.linkedin!)}
-                  className="p-3 rounded-full transition-colors hover:opacity-70"
-                  style={{ backgroundColor: `${theme.primaryColor}20` }}
-                >
-                  <Linkedin className="w-5 h-5" style={{ color: theme.primaryColor }} />
-                </a>
-              )}
-              {portfolio.links.website && (
-                <a 
-                  href={portfolio.links.website.startsWith("http") ? portfolio.links.website : `https://${portfolio.links.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  onClick={() => trackLinkClick("website", portfolio.links.website!)}
-                  className="p-3 rounded-full transition-colors hover:opacity-70"
-                  style={{ backgroundColor: `${theme.primaryColor}20` }}
-                >
-                  <Globe className="w-5 h-5" style={{ color: theme.primaryColor }} />
-                </a>
-              )}
-            </div>
-          </section>
+      <div className="min-h-screen bg-background text-foreground">
+        {/* Hero Section */}
+        {visibility.hero && (
+          <PortfolioHero
+            name={name}
+            title={displayTitle}
+            subtitle={portfolio.hero_subtitle || "Passionate about creating amazing digital experiences"}
+            profilePicture={portfolio.profile_picture_url}
+            links={portfolio.links}
+            stats={stats}
+            onLinkClick={trackLinkClick}
+            contactEmail={portfolio.contact_settings?.email}
+          />
+        )}
 
-          {/* About */}
-          {portfolio.about_text && (
-            <section className="mb-16">
-              <h2 
-                className="text-2xl font-bold mb-6"
-                style={{ color: theme.primaryColor }}
-              >
-                About
-              </h2>
-              <p className="text-lg leading-relaxed opacity-80 whitespace-pre-line">
-                {portfolio.about_text}
-              </p>
-            </section>
-          )}
+        {/* About Section */}
+        {visibility.about && portfolio.about_text && (
+          <PortfolioAbout
+            title={titles.about || "About Me"}
+            aboutText={portfolio.about_text}
+            role={portfolio.role}
+          />
+        )}
 
-          {/* Skills */}
-          {portfolio.skills.length > 0 && (
-            <section className="mb-16">
-              <h2 
-                className="text-2xl font-bold mb-6"
-                style={{ color: theme.primaryColor }}
-              >
-                Skills
-              </h2>
-              <div className="flex flex-wrap gap-3">
-                {portfolio.skills.map((skill, index) => (
-                  <span
-                    key={index}
-                    className="px-4 py-2 rounded-full text-sm font-medium"
-                    style={{ 
-                      backgroundColor: `${theme.primaryColor}20`,
-                      color: theme.primaryColor
-                    }}
-                  >
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </section>
-          )}
+        {/* Skills Section */}
+        {visibility.skills && portfolio.skills.length > 0 && (
+          <PortfolioSkills
+            title={titles.skills || "Skills & Expertise"}
+            skills={portfolio.skills}
+          />
+        )}
 
-          {/* Projects */}
-          {portfolio.projects.length > 0 && (
-            <section className="mb-16">
-              <h2 
-                className="text-2xl font-bold mb-6"
-                style={{ color: theme.primaryColor }}
-              >
-                Projects
-              </h2>
-              <div className="grid gap-6">
-                {portfolio.projects.map((project, index) => (
-                  <div
-                    key={index}
-                    className="p-6 rounded-2xl border"
-                    style={{ 
-                      borderColor: `${theme.primaryColor}30`,
-                      backgroundColor: `${theme.primaryColor}05`
-                    }}
-                  >
-                    <div className="flex items-start justify-between mb-3">
-                      <h3 className="text-xl font-semibold">{project.title}</h3>
-                      {project.link && (
-                        <a
-                          href={project.link.startsWith("http") ? project.link : `https://${project.link}`}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-sm hover:underline"
-                          style={{ color: theme.primaryColor }}
-                        >
-                          View →
-                        </a>
-                      )}
-                    </div>
-                    <p className="opacity-70 mb-4">{project.description}</p>
-                    {project.technologies.length > 0 && (
-                      <div className="flex flex-wrap gap-2">
-                        {project.technologies.map((tech, i) => (
-                          <span
-                            key={i}
-                            className="px-2 py-1 rounded text-xs opacity-60"
-                            style={{ backgroundColor: `${theme.textColor}10` }}
-                          >
-                            {tech}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+        {/* Projects Section */}
+        {visibility.projects && portfolio.projects.length > 0 && (
+          <PortfolioProjects
+            title={titles.projects || "Featured Projects"}
+            projects={portfolio.projects}
+            onLinkClick={trackLinkClick}
+          />
+        )}
 
-          {/* Experience */}
-          {portfolio.experience.length > 0 && (
-            <section className="mb-16">
-              <h2 
-                className="text-2xl font-bold mb-6"
-                style={{ color: theme.primaryColor }}
-              >
-                Experience
-              </h2>
-              <div className="space-y-6">
-                {portfolio.experience.map((exp, index) => (
-                  <div key={index} className="border-l-2 pl-6" style={{ borderColor: theme.primaryColor }}>
-                    <h3 className="text-lg font-semibold">{exp.role}</h3>
-                    <p className="opacity-60 mb-2">{exp.company} • {exp.period}</p>
-                    <p className="opacity-80">{exp.description}</p>
-                  </div>
-                ))}
-              </div>
-            </section>
-          )}
+        {/* Experience Section */}
+        {visibility.experience && portfolio.experience.length > 0 && (
+          <PortfolioExperience
+            title={titles.experience || "Experience"}
+            experience={portfolio.experience}
+            education={portfolio.education}
+            showEducation={visibility.education}
+          />
+        )}
 
-          {/* Footer */}
-          <footer className="text-center pt-12 border-t opacity-50" style={{ borderColor: `${theme.textColor}20` }}>
-            <p className="text-sm">
-              Built with{" "}
-              <a href="/" className="hover:underline" style={{ color: theme.primaryColor }}>
-                Portfolify
-              </a>
-            </p>
-          </footer>
-        </div>
+        {/* Testimonials Section */}
+        {visibility.testimonials && portfolio.testimonials.length > 0 && (
+          <PortfolioTestimonials
+            title={titles.testimonials || "Testimonials"}
+            testimonials={portfolio.testimonials}
+          />
+        )}
+
+        {/* Contact Section */}
+        {visibility.contact && (
+          <PortfolioContact
+            title={titles.contact || "Get In Touch"}
+            email={portfolio.contact_settings?.email}
+            whatsapp={portfolio.contact_settings?.whatsapp}
+            showForm={portfolio.contact_settings?.show_form}
+            links={portfolio.links}
+          />
+        )}
+
+        {/* Footer */}
+        <PortfolioFooter name={name} />
       </div>
     </>
   );
