@@ -18,7 +18,7 @@ export default function CreateFromLinkedIn() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>("upload");
-  const [inputMethod, setInputMethod] = useState<InputMethod>("url");
+  const [inputMethod, setInputMethod] = useState<InputMethod>("paste");
   const [parsing, setParsing] = useState(false);
   const [scraping, setScraping] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -98,6 +98,16 @@ export default function CreateFromLinkedIn() {
       const data = response.data;
       
       if (!data.success) {
+        // If LinkedIn scraping isn't supported, suggest paste option
+        if (data.fallbackToPaste) {
+          toast({ 
+            title: "LinkedIn URL scraping not available", 
+            description: "Please switch to 'Paste Text' tab and copy your profile content manually.", 
+            variant: "default" 
+          });
+          setInputMethod("paste");
+          return;
+        }
         throw new Error(data.error || "Failed to scrape LinkedIn profile");
       }
 
