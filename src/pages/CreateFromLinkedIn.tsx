@@ -3,20 +3,26 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Upload, Linkedin, Loader2, Sparkles, X, AlertTriangle, FileText, ExternalLink } from "lucide-react";
+import { ArrowLeft, Upload, Linkedin, Loader2, Sparkles, X, AlertTriangle, FileText, ExternalLink, Link2 } from "lucide-react";
 import { ExtractedDataReview, ExtractedData } from "@/components/resume/ExtractedDataReview";
 import type { User } from "@supabase/supabase-js";
 
 type Step = "upload" | "review" | "generating";
+type InputMethod = "url" | "paste";
 
 export default function CreateFromLinkedIn() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState<Step>("upload");
+  const [inputMethod, setInputMethod] = useState<InputMethod>("url");
   const [parsing, setParsing] = useState(false);
+  const [scraping, setScraping] = useState(false);
   const [generating, setGenerating] = useState(false);
+  const [linkedinUrl, setLinkedinUrl] = useState("");
   const [linkedinText, setLinkedinText] = useState("");
   const [fileName, setFileName] = useState("");
   const [extractedData, setExtractedData] = useState<ExtractedData | null>(null);
@@ -78,13 +84,53 @@ export default function CreateFromLinkedIn() {
     }
   };
 
-  const handleExtract = async () => {
-    if (!user || !linkedinText.trim()) return;
+  const handleScrapeUrl = async () => {
+    if (!user || !linkedinUrl.trim()) return;
+    
+    setScraping(true);
+    try {
+      const response = await supabase.functions.invoke("scrape-linkedin", {
+        body: { url: linkedinUrl.trim() }
+      });
+
+      if (response.error) throw new Error(response.error.message);
+
+      const data = response.data;
+      
+      if (!data.success) {
+        throw new Error(data.error || "Failed to scrape LinkedIn profile");
+      }
+
+      // Set the scraped content and proceed to extraction
+      setLinkedinText(data.content);
+      
+      toast({
+        title: "Profile fetched!",
+        description: "Extracting your professional information...",
+      });
+      
+      // Automatically trigger extraction
+      await handleExtractFromText(data.content);
+      
+    } catch (error: any) {
+      console.error("Scraping error:", error);
+      toast({ 
+        title: "Could not fetch profile", 
+        description: error.message || "Try pasting your profile text manually instead.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setScraping(false);
+    }
+  };
+
+  const handleExtractFromText = async (text: string) => {
+    if (!user || !text.trim()) return;
     
     setParsing(true);
     try {
       const response = await supabase.functions.invoke("parse-linkedin", {
-        body: { linkedinText }
+        body: { linkedinText: text }
       });
 
       if (response.error) throw new Error(response.error.message);
@@ -97,7 +143,7 @@ export default function CreateFromLinkedIn() {
 
       setExtractedData({
         ...parsedData,
-        rawText: linkedinText
+        rawText: text
       });
       
       setStep("review");
@@ -119,6 +165,10 @@ export default function CreateFromLinkedIn() {
     } finally {
       setParsing(false);
     }
+  };
+
+  const handleExtract = async () => {
+    await handleExtractFromText(linkedinText);
   };
 
   const handleConfirmAndGenerate = async () => {
@@ -232,123 +282,174 @@ export default function CreateFromLinkedIn() {
                 </div>
                 <h1 className="font-display text-4xl font-bold mb-3">Import from LinkedIn</h1>
                 <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-                  Export your LinkedIn profile as a PDF and paste the content below. We'll extract your professional information for review.
+                  Paste your LinkedIn profile URL or export your profile as PDF. We'll extract your professional information for review.
                 </p>
               </div>
 
-              {/* How to export guide */}
-              <div className="bg-card/50 p-6 rounded-2xl border border-border/50 mb-6">
-                <h3 className="font-semibold mb-4 flex items-center gap-2">
-                  <FileText className="w-5 h-5 text-primary" />
-                  How to export your LinkedIn profile
-                </h3>
-                <ol className="space-y-3 text-sm text-muted-foreground">
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">1</span>
-                    <span>Go to your LinkedIn profile page</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">2</span>
-                    <span>Click the <strong>"More"</strong> button below your profile photo</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">3</span>
-                    <span>Select <strong>"Save to PDF"</strong> to download your profile</span>
-                  </li>
-                  <li className="flex items-start gap-3">
-                    <span className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">4</span>
-                    <span>Open the PDF and copy all the text, then paste it below</span>
-                  </li>
-                </ol>
-                <a 
-                  href="https://www.linkedin.com/in/" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-2 mt-4 text-primary hover:underline text-sm"
-                >
-                  Go to LinkedIn Profile
-                  <ExternalLink className="w-4 h-4" />
-                </a>
-              </div>
+              <div className="bg-card p-8 rounded-2xl border border-border/50">
+                <Tabs value={inputMethod} onValueChange={(v) => setInputMethod(v as InputMethod)}>
+                  <TabsList className="grid w-full grid-cols-2 mb-6">
+                    <TabsTrigger value="url" className="flex items-center gap-2">
+                      <Link2 className="w-4 h-4" />
+                      Paste URL
+                    </TabsTrigger>
+                    <TabsTrigger value="paste" className="flex items-center gap-2">
+                      <FileText className="w-4 h-4" />
+                      Paste Text
+                    </TabsTrigger>
+                  </TabsList>
 
-              <div className="bg-card p-8 rounded-2xl border border-border/50 space-y-6">
-                {/* File upload */}
-                <div>
-                  <Label className="text-base mb-3 block">Upload LinkedIn PDF (optional)</Label>
-                  {fileName ? (
-                    <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50 border border-border">
-                      <FileText className="w-5 h-5 text-[#0A66C2]" />
-                      <span className="flex-1 truncate">{fileName}</span>
-                      <button onClick={clearFile} className="text-muted-foreground hover:text-foreground">
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-[#0A66C2]/50 transition-colors">
-                      <Upload className="w-8 h-8 text-muted-foreground mb-3" />
-                      <span className="text-sm text-muted-foreground">Click to upload your LinkedIn PDF</span>
-                      <span className="text-xs text-muted-foreground mt-1">PDF or TXT files</span>
-                      <input
-                        ref={fileInputRef}
-                        type="file"
-                        accept=".pdf,.txt,text/plain,application/pdf"
-                        onChange={handleFileUpload}
-                        className="hidden"
+                  <TabsContent value="url" className="space-y-6">
+                    <div className="space-y-3">
+                      <Label htmlFor="linkedinUrl" className="text-base">Your LinkedIn profile URL</Label>
+                      <Input
+                        id="linkedinUrl"
+                        type="url"
+                        placeholder="https://linkedin.com/in/your-username"
+                        value={linkedinUrl}
+                        onChange={(e) => setLinkedinUrl(e.target.value)}
+                        className="h-12 text-base"
                       />
-                    </label>
-                  )}
-                </div>
+                      <p className="text-sm text-muted-foreground">
+                        Enter your public LinkedIn profile URL. AI will extract your professional information automatically.
+                      </p>
+                    </div>
 
-                {/* Text input */}
-                <div className="space-y-2">
-                  <Label htmlFor="linkedinText" className="text-base">Paste your LinkedIn profile text</Label>
-                  <Textarea
-                    id="linkedinText"
-                    placeholder="Copy and paste the full text from your LinkedIn profile PDF here...
+                    <div className="flex justify-between pt-4">
+                      <Button variant="outline" asChild>
+                        <Link to="/create">
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Back
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="gradient" 
+                        size="lg" 
+                        onClick={handleScrapeUrl}
+                        disabled={scraping || parsing || !linkedinUrl.trim()}
+                      >
+                        {scraping ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Fetching Profile...
+                          </>
+                        ) : parsing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Extracting...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Extract & Review
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
 
-Include:
-• Your name and headline
-• About/Summary section
-• Work Experience
-• Education
-• Skills
-• Certifications and licenses"
-                    value={linkedinText}
-                    onChange={(e) => setLinkedinText(e.target.value)}
-                    className="min-h-[300px]"
-                  />
-                  <p className="text-sm text-muted-foreground flex items-center gap-2">
-                    <AlertTriangle className="w-4 h-4 text-warning" />
-                    Paste the complete profile for best results. You'll review everything before generating.
-                  </p>
-                </div>
-              </div>
+                  <TabsContent value="paste" className="space-y-6">
+                    {/* How to export guide */}
+                    <div className="bg-secondary/30 p-4 rounded-xl">
+                      <h3 className="font-semibold mb-3 flex items-center gap-2 text-sm">
+                        <FileText className="w-4 h-4 text-primary" />
+                        How to export your LinkedIn profile
+                      </h3>
+                      <ol className="space-y-2 text-sm text-muted-foreground">
+                        <li className="flex items-start gap-2">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">1</span>
+                          <span>Go to your LinkedIn profile and click <strong>"More"</strong></span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">2</span>
+                          <span>Select <strong>"Save to PDF"</strong> to download</span>
+                        </li>
+                        <li className="flex items-start gap-2">
+                          <span className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/10 text-primary text-xs font-medium flex items-center justify-center">3</span>
+                          <span>Open the PDF, copy all text, and paste below</span>
+                        </li>
+                      </ol>
+                      <a 
+                        href="https://www.linkedin.com/in/" 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-2 mt-3 text-primary hover:underline text-sm"
+                      >
+                        Go to LinkedIn Profile
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    </div>
 
-              <div className="mt-8 flex justify-between">
-                <Button variant="outline" asChild>
-                  <Link to="/create">
-                    <ArrowLeft className="w-4 h-4 mr-2" />
-                    Back
-                  </Link>
-                </Button>
-                <Button 
-                  variant="gradient" 
-                  size="lg" 
-                  onClick={handleExtract}
-                  disabled={parsing || !linkedinText.trim()}
-                >
-                  {parsing ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      Extracting Profile...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Extract & Review
-                    </>
-                  )}
-                </Button>
+                    {/* File upload */}
+                    <div>
+                      <Label className="text-base mb-3 block">Upload LinkedIn PDF (optional)</Label>
+                      {fileName ? (
+                        <div className="flex items-center gap-3 p-4 rounded-xl bg-secondary/50 border border-border">
+                          <FileText className="w-5 h-5 text-[#0A66C2]" />
+                          <span className="flex-1 truncate">{fileName}</span>
+                          <button onClick={clearFile} className="text-muted-foreground hover:text-foreground">
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-border rounded-xl cursor-pointer hover:border-[#0A66C2]/50 transition-colors">
+                          <Upload className="w-6 h-6 text-muted-foreground mb-2" />
+                          <span className="text-sm text-muted-foreground">Click to upload your LinkedIn PDF</span>
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept=".pdf,.txt,text/plain,application/pdf"
+                            onChange={handleFileUpload}
+                            className="hidden"
+                          />
+                        </label>
+                      )}
+                    </div>
+
+                    {/* Text input */}
+                    <div className="space-y-2">
+                      <Label htmlFor="linkedinText" className="text-base">Paste your LinkedIn profile text</Label>
+                      <Textarea
+                        id="linkedinText"
+                        placeholder="Copy and paste the full text from your LinkedIn profile PDF here..."
+                        value={linkedinText}
+                        onChange={(e) => setLinkedinText(e.target.value)}
+                        className="min-h-[200px]"
+                      />
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-warning" />
+                        Paste the complete profile for best results.
+                      </p>
+                    </div>
+
+                    <div className="flex justify-between pt-4">
+                      <Button variant="outline" asChild>
+                        <Link to="/create">
+                          <ArrowLeft className="w-4 h-4 mr-2" />
+                          Back
+                        </Link>
+                      </Button>
+                      <Button 
+                        variant="gradient" 
+                        size="lg" 
+                        onClick={handleExtract}
+                        disabled={parsing || !linkedinText.trim()}
+                      >
+                        {parsing ? (
+                          <>
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            Extracting Profile...
+                          </>
+                        ) : (
+                          <>
+                            <Sparkles className="w-4 h-4 mr-2" />
+                            Extract & Review
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </div>
             </>
           )}
