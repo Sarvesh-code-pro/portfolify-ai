@@ -56,17 +56,19 @@ serve(async (req) => {
 
     const data = await response.json();
 
-    if (!response.ok) {
+    if (!response.ok || !data.success) {
       console.error('Firecrawl API error:', data);
       
-      // LinkedIn may block scraping
-      if (response.status === 403 || data.error?.includes('blocked')) {
+      // LinkedIn is not supported by Firecrawl
+      const errorMsg = data.error || '';
+      if (errorMsg.includes('not currently supported') || errorMsg.includes('blocked') || response.status === 403) {
         return new Response(
           JSON.stringify({ 
             success: false, 
-            error: 'LinkedIn blocked the request. Please use the manual paste option with your exported LinkedIn PDF instead.' 
+            error: 'LinkedIn profiles cannot be scraped directly due to their security restrictions. Please use the "Paste Text" tab and copy your profile content from LinkedIn instead.',
+            fallbackToPaste: true
           }),
-          { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
         );
       }
       
