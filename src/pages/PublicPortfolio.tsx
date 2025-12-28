@@ -12,12 +12,14 @@ import {
   PortfolioTestimonials,
   PortfolioContact,
   PortfolioFooter,
+  PortfolioCertificates,
 } from "@/components/portfolio";
 import type { 
   Portfolio, 
   Project, 
   Experience, 
-  Testimonial, 
+  Testimonial,
+  Certificate,
   ContactSettings, 
   SEOSettings,
   SectionVisibility,

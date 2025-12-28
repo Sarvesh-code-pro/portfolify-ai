@@ -6,4 +6,5 @@ export { PortfolioExperience } from './PortfolioExperience';
 export { PortfolioTestimonials } from './PortfolioTestimonials';
 export { PortfolioContact } from './PortfolioContact';
 export { PortfolioFooter } from './PortfolioFooter';
+export { PortfolioCertificates } from './PortfolioCertificates';
 export { AnimatedSection, AnimatedText, AnimatedCard, StaggerContainer, StaggerItem } from './AnimatedSection';
