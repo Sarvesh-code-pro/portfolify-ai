@@ -1,9 +1,7 @@
 import { Link } from "react-router-dom";
 import { Sparkles } from "lucide-react";
-
 export function Footer() {
-  return (
-    <footer className="py-12 border-t border-border/50">
+  return <footer className="py-12 border-t border-border/50">
       <div className="container mx-auto px-4">
         <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <Link to="/" className="flex items-center gap-2">
@@ -19,11 +17,8 @@ export function Footer() {
             <a href="#" className="hover:text-foreground transition-colors">Support</a>
           </div>
 
-          <p className="text-sm text-muted-foreground">
-            © 2024 Portfolify. All rights reserved.
-          </p>
+          <p className="text-sm text-muted-foreground">© 2025 Portfolify. All rights reserved.</p>
         </div>
       </div>
-    </footer>
-  );
+    </footer>;
 }
