@@ -141,6 +141,34 @@ export default function Editor() {
 
   const handlePublish = async () => {
     if (!portfolio) return;
+    
+    // Check email verification before publishing
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser?.email_confirmed_at && portfolio.status !== "published") {
+      toast({ 
+        title: "Email verification required", 
+        description: "Please verify your email before publishing your portfolio.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
+    // Check onboarding completion
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("user_id", currentUser?.id)
+      .single();
+
+    if (!profile?.onboarding_completed && portfolio.status !== "published") {
+      toast({ 
+        title: "Complete onboarding first", 
+        description: "Please complete the onboarding process before publishing.",
+        variant: "destructive" 
+      });
+      return;
+    }
+
     setPublishing(true);
     
     try {

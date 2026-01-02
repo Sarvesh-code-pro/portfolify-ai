@@ -37,6 +37,15 @@ function getSafeErrorMessage(error: unknown): string {
   return "Content editing failed. Please try again.";
 }
 
+const refinementCommands: Record<string, string> = {
+  "make it more professional": "Enhance the language to sound more polished and professional while keeping the facts accurate.",
+  "make it shorter": "Condense the content while preserving the key points and impact.",
+  "make it more impactful": "Add stronger action verbs and emphasize achievements and measurable results.",
+  "improve clarity": "Simplify the language and structure for better readability.",
+  "add more detail": "Expand on the key points with specific examples and context.",
+  "match role": "Adjust the tone and emphasis to better match the target professional role.",
+};
+
 const sectionInstructions: Record<string, string> = {
   hero: `For HERO section edits:
 - Line 1: Name - Professional Title (e.g., "Sarah Chen - Senior Product Designer")
@@ -67,6 +76,17 @@ const sectionInstructions: Record<string, string> = {
 - Keep entries separated by blank lines
 - Don't add or remove entries unless asked`
 };
+
+// Detect if command is a refinement shortcut
+function expandRefinementCommand(command: string): string {
+  const lowerCommand = command.toLowerCase().trim();
+  for (const [shortcut, expansion] of Object.entries(refinementCommands)) {
+    if (lowerCommand.includes(shortcut)) {
+      return expansion;
+    }
+  }
+  return command;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -99,9 +119,12 @@ serve(async (req) => {
 
     console.log("User authenticated:", user.id);
 
-    const { command, content, scope, sectionType, context }: EditRequest = await req.json();
+    const { command: rawCommand, content, scope, sectionType, context }: EditRequest = await req.json();
 
-    if (!command || !content) {
+    // Expand refinement shortcuts to full instructions
+    const command = expandRefinementCommand(rawCommand);
+
+    if (!rawCommand || !content) {
       return new Response(
         JSON.stringify({ error: "Command and content are required" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
