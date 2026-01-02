@@ -3,8 +3,16 @@ import { useNavigate, Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Plus, LogOut, Edit, Globe, EyeOff, ExternalLink, Trash2, BarChart3, Eye } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { Sparkles, Plus, LogOut, Edit, Globe, EyeOff, ExternalLink, Trash2, BarChart3, Eye, Users, AlertCircle } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Portfolio {
   id: string;
@@ -15,6 +23,12 @@ interface Portfolio {
   created_at: string;
   updated_at: string;
   quality_score: number | null;
+  workspace_id: string | null;
+}
+
+interface Workspace {
+  id: string;
+  name: string;
 }
 
 interface AnalyticsSummary {
@@ -23,43 +37,31 @@ interface AnalyticsSummary {
 }
 
 export default function Dashboard() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, isEmailVerified, profile, loading: authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [portfolios, setPortfolios] = useState<Portfolio[]>([]);
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
   const [analytics, setAnalytics] = useState<Record<string, number>>({});
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    if (!loading && !user) {
+    if (!authLoading && !user) {
       navigate("/auth");
     }
-  }, [user, loading, navigate]);
+  }, [user, authLoading, navigate]);
 
   useEffect(() => {
     if (user) {
       fetchPortfolios();
+      fetchWorkspaces();
     }
   }, [user]);
 
   const fetchPortfolios = async () => {
     const { data, error } = await supabase
       .from("portfolios")
-      .select("id, username, role, status, hero_title, created_at, updated_at, quality_score")
+      .select("id, username, role, status, hero_title, created_at, updated_at, quality_score, workspace_id")
       .order("created_at", { ascending: false });
 
     if (!error && data) {
@@ -78,6 +80,32 @@ export default function Dashboard() {
         }
       }
       setAnalytics(analyticsMap);
+    }
+    setLoading(false);
+  };
+
+  const fetchWorkspaces = async () => {
+    const { data } = await supabase
+      .from("workspaces")
+      .select("id, name")
+      .order("name");
+    
+    if (data) {
+      setWorkspaces(data);
+    }
+  };
+
+  const handleAssignWorkspace = async (portfolioId: string, workspaceId: string | null) => {
+    const { error } = await supabase
+      .from("portfolios")
+      .update({ workspace_id: workspaceId === "none" ? null : workspaceId })
+      .eq("id", portfolioId);
+
+    if (error) {
+      toast({ title: "Failed to assign workspace", variant: "destructive" });
+    } else {
+      toast({ title: "Workspace assigned" });
+      fetchPortfolios();
     }
   };
 
@@ -98,13 +126,14 @@ export default function Dashboard() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
+
 
   const roleLabels: Record<string, string> = {
     developer: "Developer",
@@ -135,17 +164,54 @@ export default function Dashboard() {
 
       {/* Main content */}
       <main className="container mx-auto px-4 py-12">
+        {/* Email verification warning */}
+        {!isEmailVerified && (
+          <div className="mb-6 p-4 rounded-xl bg-warning/10 border border-warning/30 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-warning">Email not verified</p>
+              <p className="text-sm text-muted-foreground">
+                Please verify your email to publish portfolios. Check your inbox for the verification link.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Onboarding warning */}
+        {!profile?.onboarding_completed && (
+          <div className="mb-6 p-4 rounded-xl bg-primary/10 border border-primary/30 flex items-start gap-3">
+            <AlertCircle className="w-5 h-5 text-primary flex-shrink-0 mt-0.5" />
+            <div>
+              <p className="font-medium text-primary">Complete your profile</p>
+              <p className="text-sm text-muted-foreground">
+                Finish the onboarding process to unlock publishing.{" "}
+                <Link to="/onboarding" className="underline hover:text-primary">
+                  Continue onboarding
+                </Link>
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="font-display text-3xl font-bold mb-2">Your Portfolios</h1>
             <p className="text-muted-foreground">Manage and edit your portfolio websites</p>
           </div>
-          <Button variant="hero" asChild>
-            <Link to="/create">
-              <Plus className="w-4 h-4 mr-2" />
-              Create Portfolio
-            </Link>
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" asChild>
+              <Link to="/workspaces">
+                <Users className="w-4 h-4 mr-2" />
+                Workspaces
+              </Link>
+            </Button>
+            <Button variant="hero" asChild>
+              <Link to="/create">
+                <Plus className="w-4 h-4 mr-2" />
+                Create Portfolio
+              </Link>
+            </Button>
+          </div>
         </div>
 
         {portfolios.length === 0 ? (
@@ -187,7 +253,7 @@ export default function Dashboard() {
                         {portfolio.status === "published" ? "Live" : "Draft"}
                       </span>
                     </div>
-                    <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-4 text-sm text-muted-foreground flex-wrap">
                       <span>{roleLabels[portfolio.role] || portfolio.role}</span>
                       <span>•</span>
                       <span>/{portfolio.username}</span>
@@ -208,9 +274,37 @@ export default function Dashboard() {
                           </span>
                         </>
                       )}
+                      {portfolio.workspace_id && (
+                        <>
+                          <span>•</span>
+                          <span className="flex items-center gap-1">
+                            <Users className="w-3 h-3" />
+                            {workspaces.find(w => w.id === portfolio.workspace_id)?.name || "Workspace"}
+                          </span>
+                        </>
+                      )}
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    {/* Workspace assignment */}
+                    {workspaces.length > 0 && (
+                      <Select
+                        value={portfolio.workspace_id || "none"}
+                        onValueChange={(value) => handleAssignWorkspace(portfolio.id, value)}
+                      >
+                        <SelectTrigger className="w-[140px] h-8 text-xs">
+                          <SelectValue placeholder="Workspace" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">No workspace</SelectItem>
+                          {workspaces.map((ws) => (
+                            <SelectItem key={ws.id} value={ws.id}>
+                              {ws.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
                     {portfolio.status === "published" && (
                       <Button variant="ghost" size="sm" asChild>
                         <a href={`/p/${portfolio.username}`} target="_blank" rel="noopener noreferrer">
