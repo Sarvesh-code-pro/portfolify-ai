@@ -38,12 +38,20 @@ function getSafeErrorMessage(error: unknown): string {
 }
 
 const refinementCommands: Record<string, string> = {
-  "make it more professional": "Enhance the language to sound more polished and professional while keeping the facts accurate.",
-  "make it shorter": "Condense the content while preserving the key points and impact.",
-  "make it more impactful": "Add stronger action verbs and emphasize achievements and measurable results.",
-  "improve clarity": "Simplify the language and structure for better readability.",
-  "add more detail": "Expand on the key points with specific examples and context.",
-  "match role": "Adjust the tone and emphasis to better match the target professional role.",
+  "make it more professional": "Enhance the language to sound more polished and professional while keeping the facts accurate. Use industry-appropriate terminology and strong action verbs.",
+  "make it shorter": "Condense the content significantly while preserving the key points and impact. Remove redundant words and phrases.",
+  "make it more impactful": "Add stronger action verbs, emphasize achievements with specific metrics and measurable results. Make every sentence count.",
+  "improve clarity": "Simplify the language and structure for better readability. Break down complex sentences.",
+  "add more detail": "Expand on the key points with specific examples, context, and quantifiable achievements.",
+  "match role": "Adjust the tone, emphasis, and keywords to better match the target professional role.",
+  "make more concise": "Cut unnecessary words, combine similar ideas, and make the content more direct and punchy.",
+  "improve professionalism": "Polish the language, remove casual phrasing, and add executive-level vocabulary.",
+  "add more action verbs": "Replace passive voice with active voice, start sentences with strong action verbs like Led, Built, Increased, Delivered.",
+  "quantify achievements": "Add specific numbers, percentages, and metrics to demonstrate impact wherever possible.",
+  "rewrite for tech role": "Emphasize technical skills, system design, scalability, and engineering achievements. Use tech industry terminology.",
+  "rewrite for pm role": "Emphasize product strategy, user research, stakeholder management, and business impact. Use product management frameworks.",
+  "make more engaging": "Add personality, storytelling elements, and compelling hooks while maintaining professionalism.",
+  "fix grammar": "Correct any grammatical errors, improve sentence structure, and ensure consistent tense usage.",
 };
 
 const sectionInstructions: Record<string, string> = {
@@ -157,23 +165,31 @@ serve(async (req) => {
 
     // For portfolio-scope edits, use tool calling for structured output
     if (scope === "portfolio") {
-      const systemPrompt = `You are a professional portfolio editor. Apply the user's command to improve the portfolio content.
+      const systemPrompt = `You are an expert portfolio editor and career consultant. Your job is to TRANSFORM the entire portfolio based on the user's command.
 
-EDITING PRINCIPLES:
-1. PRESERVE FACTS: Keep all dates, numbers, company names, and specific achievements
-2. ENHANCE LANGUAGE: Use active voice, strong verbs, and professional tone
-3. MAINTAIN STRUCTURE: Don't add/remove sections unless specifically asked
-4. BE TARGETED: Only modify what the command asks for
-5. ROLE CONTEXT: Target role is ${context?.role || "professional"}
+CRITICAL INSTRUCTIONS:
+1. MAKE COMPREHENSIVE CHANGES: When asked to improve the portfolio, update ALL relevant sections - hero, about, skills, experience, and projects
+2. PRESERVE FACTS: Keep all dates, numbers, company names, and specific achievements intact
+3. ENHANCE LANGUAGE: Use active voice, powerful action verbs, and executive-level professional tone
+4. QUANTIFY IMPACT: Add metrics and numbers wherever possible (e.g., "Increased sales by 40%", "Led team of 8")
+5. ROLE ALIGNMENT: Target role is ${context?.role || "professional"} - tailor language and emphasis accordingly
+6. BE THOROUGH: Don't make minimal changes. Transform content to be compelling and recruiter-ready.
 
-Call the patch_portfolio function with only the fields that should be updated.`;
+WRITING STYLE:
+- Use action verbs: Led, Built, Increased, Delivered, Architected, Spearheaded, Streamlined
+- Be specific and quantifiable: "Reduced load time by 60%" not "Improved performance"  
+- Sound confident but authentic
+- Make hero_subtitle a compelling one-liner value proposition
+- Make about_text tell a professional story in 2-3 engaging paragraphs
+
+Call the patch_portfolio function with ALL fields that should be updated to apply comprehensive improvements.`;
 
       const userPrompt = `Command: "${command}"
 
 Current portfolio content:
 ${content}
 
-Apply the command and return only the modified fields.`;
+Apply the command comprehensively across ALL relevant sections. Make substantial improvements, not minimal tweaks.`;
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",

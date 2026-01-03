@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, Save, Globe, Eye, EyeOff, Loader2, Plus, Trash2, 
-  GripVertical, ExternalLink, Settings, Palette, BarChart3, FileText, GitBranch, Star, Link as LinkIcon
+  GripVertical, ExternalLink, Settings, Palette, BarChart3, FileText, GitBranch, Star, Link as LinkIcon, Camera
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { PortfolioPreview } from "@/components/editor/PortfolioPreview";
@@ -19,6 +19,7 @@ import { VersionManager } from "@/components/editor/VersionManager";
 import { ABTestManager } from "@/components/editor/ABTestManager";
 import { AICommandInput } from "@/components/editor/AICommandInput";
 import { PublicLinksManager } from "@/components/editor/PublicLinksManager";
+import { ProfilePictureEditor } from "@/components/editor/ProfilePictureEditor";
 import { getClientErrorMessage } from "@/lib/error-utils";
 interface Project {
   title: string;
@@ -51,6 +52,7 @@ interface Portfolio {
   theme: { primaryColor: string; backgroundColor: string; textColor: string };
   resume_text: string | null;
   quality_score: number | null;
+  profile_picture_url: string | null;
 }
 
 export default function Editor() {
@@ -102,7 +104,8 @@ export default function Editor() {
         links: data.links as Portfolio["links"] || {},
         theme: data.theme as Portfolio["theme"] || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" },
         resume_text: data.resume_text || null,
-        quality_score: data.quality_score || null
+        quality_score: data.quality_score || null,
+        profile_picture_url: data.profile_picture_url || null
       });
       setLoading(false);
     };
@@ -126,7 +129,8 @@ export default function Editor() {
           experience: JSON.parse(JSON.stringify(portfolio.experience)),
           links: portfolio.links,
           template: portfolio.template,
-          theme: portfolio.theme
+          theme: portfolio.theme,
+          profile_picture_url: portfolio.profile_picture_url
         })
         .eq("id", portfolio.id);
 
@@ -326,6 +330,31 @@ export default function Editor() {
           <div className="flex-1 overflow-y-auto p-4 space-y-6">
             {activeTab === "content" && (
               <>
+                {/* Profile Picture Section */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Profile Picture</h3>
+                  <div className="flex items-center gap-4">
+                    <div className="w-20 h-20 rounded-full overflow-hidden bg-secondary border-2 border-border flex items-center justify-center">
+                      {portfolio.profile_picture_url ? (
+                        <img 
+                          src={portfolio.profile_picture_url} 
+                          alt="Profile" 
+                          className="w-full h-full object-cover" 
+                        />
+                      ) : (
+                        <Camera className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    {user && (
+                      <ProfilePictureEditor
+                        userId={user.id}
+                        currentUrl={portfolio.profile_picture_url}
+                        onUpdate={(url) => updatePortfolio({ profile_picture_url: url })}
+                      />
+                    )}
+                  </div>
+                </div>
+
                 {/* Hero section */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Hero</h3>
@@ -452,17 +481,25 @@ export default function Editor() {
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Template</h3>
                   <div className="grid grid-cols-2 gap-3">
-                    {["minimal", "bold", "elegant"].map((template) => (
+                    {[
+                      { id: "minimal", name: "Minimal", desc: "Clean & simple" },
+                      { id: "bold", name: "Bold", desc: "Strong impact" },
+                      { id: "elegant", name: "Elegant", desc: "Sophisticated" },
+                      { id: "creative", name: "Creative", desc: "Artsy & unique" },
+                      { id: "modern", name: "Modern", desc: "Contemporary" },
+                      { id: "professional", name: "Professional", desc: "Corporate" },
+                    ].map((template) => (
                       <button
-                        key={template}
-                        onClick={() => updatePortfolio({ template })}
-                        className={`p-4 rounded-xl border-2 transition-all text-center capitalize ${
-                          portfolio.template === template
+                        key={template.id}
+                        onClick={() => updatePortfolio({ template: template.id })}
+                        className={`p-4 rounded-xl border-2 transition-all text-left ${
+                          portfolio.template === template.id
                             ? "border-primary bg-primary/5"
                             : "border-border hover:border-primary/30"
                         }`}
                       >
-                        {template}
+                        <div className="font-medium text-sm">{template.name}</div>
+                        <div className="text-xs text-muted-foreground">{template.desc}</div>
                       </button>
                     ))}
                   </div>

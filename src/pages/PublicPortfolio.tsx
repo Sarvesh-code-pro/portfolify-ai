@@ -191,13 +191,14 @@ export default function PublicPortfolio() {
   return (
     <>
       <Helmet>
-        <title>{portfolio.seo_settings?.meta_title || portfolio.hero_title || "Portfolio"} | Portfolify</title>
+        <title>{portfolio.seo_settings?.meta_title || portfolio.hero_title || "Portfolio"}</title>
         <meta 
           name="description" 
           content={portfolio.seo_settings?.meta_description || portfolio.hero_subtitle || portfolio.about_text?.slice(0, 160) || "Professional portfolio"} 
         />
         <meta property="og:title" content={portfolio.seo_settings?.meta_title || portfolio.hero_title || "Portfolio"} />
         <meta property="og:description" content={portfolio.seo_settings?.meta_description || portfolio.hero_subtitle || ""} />
+        <meta property="og:type" content="website" />
         {portfolio.seo_settings?.og_image_url && (
           <meta property="og:image" content={portfolio.seo_settings.og_image_url} />
         )}
@@ -205,6 +206,7 @@ export default function PublicPortfolio() {
           <link rel="icon" href={portfolio.seo_settings.favicon_url} />
         )}
         <meta name="robots" content="index, follow" />
+        <meta name="twitter:card" content="summary_large_image" />
       </Helmet>
 
       <div className="min-h-screen bg-background text-foreground">
