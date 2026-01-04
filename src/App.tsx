@@ -19,6 +19,8 @@ import Onboarding from "./pages/Onboarding";
 import Contact from "./pages/Contact";
 import Workspaces from "./pages/Workspaces";
 import AdminDashboard from "./pages/AdminDashboard";
+import Resumes from "./pages/Resumes";
+import ResumeEditor from "./pages/ResumeEditor";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,6 +48,8 @@ const App = () => (
               <Route path="/contact" element={<Contact />} />
               <Route path="/workspaces" element={<Workspaces />} />
               <Route path="/admin" element={<AdminDashboard />} />
+              <Route path="/resumes" element={<Resumes />} />
+              <Route path="/resumes/:id" element={<ResumeEditor />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>

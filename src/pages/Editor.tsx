@@ -348,6 +348,7 @@ export default function Editor() {
                     {user && (
                       <ProfilePictureEditor
                         userId={user.id}
+                        portfolioId={portfolio.id}
                         currentUrl={portfolio.profile_picture_url}
                         onUpdate={(url) => updatePortfolio({ profile_picture_url: url })}
                       />
