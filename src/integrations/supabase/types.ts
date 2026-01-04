@@ -413,6 +413,130 @@ export type Database = {
         }
         Relationships: []
       }
+      resume_versions: {
+        Row: {
+          created_at: string
+          id: string
+          label: string | null
+          resume_id: string
+          snapshot: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          resume_id: string
+          snapshot: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          label?: string | null
+          resume_id?: string
+          snapshot?: Json
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_versions_resume_id_fkey"
+            columns: ["resume_id"]
+            isOneToOne: false
+            referencedRelation: "resumes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resumes: {
+        Row: {
+          ats_score: number | null
+          ats_suggestions: Json | null
+          contact_email: string | null
+          contact_github: string | null
+          contact_linkedin: string | null
+          contact_phone: string | null
+          contact_website: string | null
+          created_at: string
+          education_override: Json | null
+          experience_override: Json | null
+          id: string
+          job_description: string | null
+          last_exported_at: string | null
+          name: string
+          page_limit: number
+          portfolio_id: string | null
+          projects_override: Json | null
+          skills_override: Json | null
+          summary_override: string | null
+          target_company: string | null
+          target_role: string | null
+          template: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ats_score?: number | null
+          ats_suggestions?: Json | null
+          contact_email?: string | null
+          contact_github?: string | null
+          contact_linkedin?: string | null
+          contact_phone?: string | null
+          contact_website?: string | null
+          created_at?: string
+          education_override?: Json | null
+          experience_override?: Json | null
+          id?: string
+          job_description?: string | null
+          last_exported_at?: string | null
+          name?: string
+          page_limit?: number
+          portfolio_id?: string | null
+          projects_override?: Json | null
+          skills_override?: Json | null
+          summary_override?: string | null
+          target_company?: string | null
+          target_role?: string | null
+          template?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ats_score?: number | null
+          ats_suggestions?: Json | null
+          contact_email?: string | null
+          contact_github?: string | null
+          contact_linkedin?: string | null
+          contact_phone?: string | null
+          contact_website?: string | null
+          created_at?: string
+          education_override?: Json | null
+          experience_override?: Json | null
+          id?: string
+          job_description?: string | null
+          last_exported_at?: string | null
+          name?: string
+          page_limit?: number
+          portfolio_id?: string | null
+          projects_override?: Json | null
+          skills_override?: Json | null
+          summary_override?: string | null
+          target_company?: string | null
+          target_role?: string | null
+          template?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resumes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string

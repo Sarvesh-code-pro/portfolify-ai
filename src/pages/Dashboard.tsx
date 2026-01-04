@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sparkles, Plus, LogOut, Edit, Globe, EyeOff, ExternalLink, Trash2, BarChart3, Eye, Users, AlertCircle } from "lucide-react";
+import { Sparkles, Plus, LogOut, Edit, Globe, EyeOff, ExternalLink, Trash2, BarChart3, Eye, Users, AlertCircle, FileText } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import {
   Select,
@@ -199,6 +199,12 @@ export default function Dashboard() {
             <p className="text-muted-foreground">Manage and edit your portfolio websites</p>
           </div>
           <div className="flex items-center gap-3">
+            <Button variant="outline" asChild>
+              <Link to="/resumes">
+                <FileText className="w-4 h-4 mr-2" />
+                Resumes
+              </Link>
+            </Button>
             <Button variant="outline" asChild>
               <Link to="/workspaces">
                 <Users className="w-4 h-4 mr-2" />

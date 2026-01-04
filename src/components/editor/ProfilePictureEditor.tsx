@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 
 interface ProfilePictureEditorProps {
   userId: string;
+  portfolioId: string;
   currentUrl: string | null;
   onUpdate: (url: string | null) => void;
 }
@@ -22,6 +23,7 @@ interface CroppedArea {
 
 export function ProfilePictureEditor({
   userId,
+  portfolioId,
   currentUrl,
   onUpdate,
 }: ProfilePictureEditorProps) {
@@ -111,7 +113,17 @@ export function ProfilePictureEditor({
         .from("portfolio-assets")
         .getPublicUrl(fileName);
 
-      onUpdate(data.publicUrl);
+      const publicUrl = data.publicUrl;
+      
+      // Save directly to database
+      const { error: updateError } = await supabase
+        .from("portfolios")
+        .update({ profile_picture_url: publicUrl })
+        .eq("id", portfolioId);
+      
+      if (updateError) throw updateError;
+      
+      onUpdate(publicUrl);
       toast({ title: "Profile picture updated!" });
       setCropDialogOpen(false);
       setMainDialogOpen(false);
@@ -125,9 +137,21 @@ export function ProfilePictureEditor({
   };
 
   const handleRemove = async () => {
-    onUpdate(null);
-    toast({ title: "Profile picture removed" });
-    setMainDialogOpen(false);
+    try {
+      const { error } = await supabase
+        .from("portfolios")
+        .update({ profile_picture_url: null })
+        .eq("id", portfolioId);
+      
+      if (error) throw error;
+      
+      onUpdate(null);
+      toast({ title: "Profile picture removed" });
+      setMainDialogOpen(false);
+    } catch (error) {
+      console.error("Remove error:", error);
+      toast({ title: "Failed to remove picture", variant: "destructive" });
+    }
   };
 
   return (
