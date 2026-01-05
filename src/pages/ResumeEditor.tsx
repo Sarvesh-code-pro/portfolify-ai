@@ -594,6 +594,7 @@ export default function ResumeEditor() {
       {/* PDF Preview Dialog */}
       <ResumePDFPreview
         portfolio={effectiveContent}
+        template={resume.template}
         open={previewOpen}
         onOpenChange={setPreviewOpen}
       />

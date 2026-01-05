@@ -30,20 +30,23 @@ interface ResumePDFPreviewProps {
     education?: any[];
     links?: any;
   };
+  template?: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 }
 
-export function ResumePDFPreview({ portfolio, open, onOpenChange }: ResumePDFPreviewProps) {
+export function ResumePDFPreview({ portfolio, template = "classic", open, onOpenChange }: ResumePDFPreviewProps) {
   const [pdfUrl, setPdfUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [pageLimit, setPageLimit] = useState<1 | 2>(1);
+
+  const templateStyle = template as "classic" | "modern" | "minimal" | "professional" | "executive";
 
   const generatePreview = async () => {
     setLoading(true);
     try {
       await new Promise(resolve => setTimeout(resolve, 100));
-      const url = generateResumePDFDataUrl(portfolio, pageLimit);
+      const url = generateResumePDFDataUrl(portfolio, pageLimit, templateStyle);
       setPdfUrl(url);
     } catch (error) {
       console.error("Error generating PDF preview:", error);
@@ -56,11 +59,11 @@ export function ResumePDFPreview({ portfolio, open, onOpenChange }: ResumePDFPre
     if (open) {
       generatePreview();
     }
-  }, [open, pageLimit]);
+  }, [open, pageLimit, template]);
 
   const handleDownload = () => {
     const name = portfolio.hero_title?.split(" - ")[0]?.trim()?.toLowerCase().replace(/\s+/g, "_") || "resume";
-    downloadResumePDF(portfolio, `${name}_resume.pdf`, pageLimit);
+    downloadResumePDF(portfolio, `${name}_resume.pdf`, pageLimit, templateStyle);
   };
 
   const handleRegenerate = () => {

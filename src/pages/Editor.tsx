@@ -483,12 +483,12 @@ export default function Editor() {
                   <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground">Template</h3>
                   <div className="grid grid-cols-2 gap-3">
                     {[
-                      { id: "minimal", name: "Minimal", desc: "Clean & simple" },
-                      { id: "bold", name: "Bold", desc: "Strong impact" },
-                      { id: "elegant", name: "Elegant", desc: "Sophisticated" },
-                      { id: "creative", name: "Creative", desc: "Artsy & unique" },
-                      { id: "modern", name: "Modern", desc: "Contemporary" },
-                      { id: "professional", name: "Professional", desc: "Corporate" },
+                      { id: "minimal", name: "Minimal", desc: "Ultra-clean, content-focused" },
+                      { id: "bold", name: "Bold", desc: "High-impact, dramatic" },
+                      { id: "elegant", name: "Elegant", desc: "Refined, sophisticated" },
+                      { id: "creative", name: "Creative", desc: "Artsy, unique layouts" },
+                      { id: "modern", name: "Modern", desc: "Contemporary, glass effects" },
+                      { id: "professional", name: "Professional", desc: "Corporate, structured" },
                     ].map((template) => (
                       <button
                         key={template.id}

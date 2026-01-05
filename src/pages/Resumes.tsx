@@ -108,7 +108,7 @@ export default function Resumes() {
         .insert({
           user_id: user.id,
           name: newResumeName.trim(),
-          portfolio_id: selectedPortfolio || null,
+          portfolio_id: selectedPortfolio && selectedPortfolio !== "none" ? selectedPortfolio : null,
         })
         .select("id")
         .single();
@@ -367,7 +367,7 @@ export default function Resumes() {
                   <SelectValue placeholder="Select a portfolio" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No portfolio</SelectItem>
+                  <SelectItem value="none">No portfolio</SelectItem>
                   {portfolios.map((p) => (
                     <SelectItem key={p.id} value={p.id}>
                       {p.hero_title || p.username}
