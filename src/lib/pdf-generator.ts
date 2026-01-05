@@ -42,6 +42,60 @@ interface PDFConfig {
   bulletLineHeight: number;
 }
 
+type TemplateStyle = "classic" | "modern" | "minimal" | "professional" | "executive";
+
+interface TemplateConfig {
+  headerAlignment: "left" | "center";
+  sectionHeaderStyle: "underline" | "bold" | "uppercase" | "simple" | "boxed";
+  nameStyle: "bold" | "uppercase" | "normal";
+  bulletStyle: "bullet" | "dash" | "arrow";
+  contactLayout: "inline" | "stacked" | "centered";
+  sectionSpacing: "compact" | "normal" | "spacious";
+}
+
+const templateConfigs: Record<TemplateStyle, TemplateConfig> = {
+  classic: {
+    headerAlignment: "left",
+    sectionHeaderStyle: "underline",
+    nameStyle: "bold",
+    bulletStyle: "bullet",
+    contactLayout: "inline",
+    sectionSpacing: "normal",
+  },
+  modern: {
+    headerAlignment: "center",
+    sectionHeaderStyle: "boxed",
+    nameStyle: "bold",
+    bulletStyle: "dash",
+    contactLayout: "centered",
+    sectionSpacing: "compact",
+  },
+  minimal: {
+    headerAlignment: "center",
+    sectionHeaderStyle: "simple",
+    nameStyle: "uppercase",
+    bulletStyle: "dash",
+    contactLayout: "centered",
+    sectionSpacing: "spacious",
+  },
+  professional: {
+    headerAlignment: "left",
+    sectionHeaderStyle: "bold",
+    nameStyle: "bold",
+    bulletStyle: "bullet",
+    contactLayout: "stacked",
+    sectionSpacing: "normal",
+  },
+  executive: {
+    headerAlignment: "center",
+    sectionHeaderStyle: "uppercase",
+    nameStyle: "uppercase",
+    bulletStyle: "arrow",
+    contactLayout: "centered",
+    sectionSpacing: "spacious",
+  },
+};
+
 // Content compression strategies
 function compressSummary(text: string, maxChars: number): string {
   if (text.length <= maxChars) return text;
@@ -63,7 +117,6 @@ function compressBullets(description: string, maxBullets: number): string[] {
 
 function shortenBullet(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
-  // Try to end at a word boundary
   let truncated = text.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(" ");
   if (lastSpace > maxLength * 0.7) {
@@ -76,40 +129,34 @@ function shortenBullet(text: string, maxLength: number): string {
 function estimateContentHeight(portfolio: PortfolioData, config: PDFConfig, contentWidth: number): number {
   let height = 0;
   
-  // Header
   height += config.headerFontSize * 1.2 + config.sectionGap;
   if (portfolio.hero_subtitle) height += config.bodyFontSize * 1.4;
-  height += config.bodyFontSize * 1.5; // contacts
+  height += config.bodyFontSize * 1.5;
   
-  // Summary
   if (portfolio.about_text) {
     height += config.sectionFontSize + 20 + 
       Math.ceil(portfolio.about_text.length / 80) * config.bodyFontSize * config.lineHeight;
   }
   
-  // Experience
   if (portfolio.experience?.length) {
     height += config.sectionFontSize + 20;
     for (const exp of portfolio.experience) {
-      height += config.bodyFontSize * 2.5; // role, company, period
+      height += config.bodyFontSize * 2.5;
       const bullets = exp.description?.split(/[•\-\n]/).filter(b => b.trim()) || [];
       height += bullets.length * config.bodyFontSize * config.bulletLineHeight * 1.5;
       height += config.sectionGap / 2;
     }
   }
   
-  // Skills
   if (portfolio.skills?.length) {
     height += config.sectionFontSize + 20 + config.bodyFontSize * 2;
   }
   
-  // Projects
   if (portfolio.projects?.length) {
     height += config.sectionFontSize + 20;
     height += portfolio.projects.length * config.bodyFontSize * 4;
   }
   
-  // Education
   if (portfolio.education?.length) {
     height += config.sectionFontSize + 20;
     height += portfolio.education.length * config.bodyFontSize * 2.5;
@@ -118,28 +165,30 @@ function estimateContentHeight(portfolio: PortfolioData, config: PDFConfig, cont
   return height;
 }
 
-// Get optimized config based on content
-function getOptimalConfig(portfolio: PortfolioData, pageLimit: 1 | 2): PDFConfig {
+function getOptimalConfig(portfolio: PortfolioData, pageLimit: 1 | 2, template: TemplateStyle): PDFConfig {
+  const templateConf = templateConfigs[template];
+  
+  const spacingMultiplier = templateConf.sectionSpacing === "spacious" ? 1.3 
+    : templateConf.sectionSpacing === "compact" ? 0.8 : 1;
+
   const baseConfig: PDFConfig = {
     pageLimit,
     margin: 40,
-    headerFontSize: 16,
+    headerFontSize: template === "executive" ? 18 : template === "minimal" ? 14 : 16,
     sectionFontSize: 11,
     bodyFontSize: 9,
-    lineHeight: 1.35,
-    sectionGap: 10,
+    lineHeight: 1.35 * spacingMultiplier,
+    sectionGap: 10 * spacingMultiplier,
     bulletLineHeight: 1.25,
   };
   
-  const pageHeight = 792; // Letter page height in pt
+  const pageHeight = 792;
   const contentWidth = 612 - baseConfig.margin * 2;
   const availableHeight = (pageHeight - baseConfig.margin * 2) * pageLimit;
   
   let estimatedHeight = estimateContentHeight(portfolio, baseConfig, contentWidth);
   
-  // Progressively compress if needed for one-page
   if (pageLimit === 1 && estimatedHeight > availableHeight) {
-    // Level 1: Reduce spacing
     baseConfig.sectionGap = 6;
     baseConfig.lineHeight = 1.25;
     baseConfig.bulletLineHeight = 1.15;
@@ -147,7 +196,6 @@ function getOptimalConfig(portfolio: PortfolioData, pageLimit: 1 | 2): PDFConfig
     estimatedHeight = estimateContentHeight(portfolio, baseConfig, contentWidth);
     
     if (estimatedHeight > availableHeight) {
-      // Level 2: Reduce font sizes
       baseConfig.headerFontSize = 14;
       baseConfig.sectionFontSize = 10;
       baseConfig.bodyFontSize = 8.5;
@@ -157,7 +205,6 @@ function getOptimalConfig(portfolio: PortfolioData, pageLimit: 1 | 2): PDFConfig
     estimatedHeight = estimateContentHeight(portfolio, baseConfig, contentWidth);
     
     if (estimatedHeight > availableHeight) {
-      // Level 3: Minimal spacing
       baseConfig.sectionGap = 4;
       baseConfig.lineHeight = 1.2;
       baseConfig.margin = 32;
@@ -168,9 +215,22 @@ function getOptimalConfig(portfolio: PortfolioData, pageLimit: 1 | 2): PDFConfig
   return baseConfig;
 }
 
-// ATS-friendly PDF generation using structured data only (no HTML conversion)
-export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 = 1): jsPDF {
-  const config = getOptimalConfig(portfolio, pageLimit);
+function getBulletChar(style: TemplateConfig["bulletStyle"]): string {
+  switch (style) {
+    case "dash": return "–";
+    case "arrow": return "›";
+    default: return "•";
+  }
+}
+
+// ATS-friendly PDF generation with template support
+export function generateATSResumePDF(
+  portfolio: PortfolioData, 
+  pageLimit: 1 | 2 = 1,
+  template: TemplateStyle = "classic"
+): jsPDF {
+  const config = getOptimalConfig(portfolio, pageLimit, template);
+  const templateConf = templateConfigs[template];
   
   const doc = new jsPDF({
     orientation: "portrait",
@@ -184,12 +244,10 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
   let y = config.margin;
   let currentPage = 1;
 
-  // Calculate available content height based on page limit
   const maxContentHeight = pageLimit === 1 
     ? pageHeight - config.margin * 2 
     : (pageHeight - config.margin * 2) * 2;
 
-  // Compression settings based on content density
   const contentDensity = estimateContentHeight(portfolio, config, contentWidth);
   const compressionLevel = contentDensity > maxContentHeight 
     ? (contentDensity > maxContentHeight * 1.5 ? "high" : "medium") 
@@ -199,15 +257,13 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
   const maxBulletsPerRole = compressionLevel === "high" ? 3 : compressionLevel === "medium" ? 4 : 6;
   const bulletMaxLength = compressionLevel === "high" ? 100 : compressionLevel === "medium" ? 140 : 200;
 
-  // Simple black text on white background (ATS requirement)
   doc.setTextColor(0, 0, 0);
   doc.setFillColor(255, 255, 255);
 
-  // Check if we should add new page (only if pageLimit > 1)
   const checkPageBreak = (neededHeight: number = 30): boolean => {
     if (y + neededHeight > pageHeight - config.margin) {
       if (pageLimit === 1 || currentPage >= pageLimit) {
-        return false; // Don't add more content
+        return false;
       }
       doc.addPage();
       currentPage++;
@@ -216,28 +272,46 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
     return true;
   };
 
-  // Helper to wrap and print text
-  const printWrappedText = (text: string, fontSize: number, lineHeight: number = config.lineHeight): boolean => {
+  const printWrappedText = (text: string, fontSize: number, lineHeight: number = config.lineHeight, align: "left" | "center" = "left"): boolean => {
     doc.setFontSize(fontSize);
     const lines = doc.splitTextToSize(text, contentWidth);
     for (const line of lines) {
       if (!checkPageBreak(fontSize * lineHeight)) return false;
-      doc.text(line, config.margin, y);
+      const xPos = align === "center" ? pageWidth / 2 : config.margin;
+      doc.text(line, xPos, y, { align });
       y += fontSize * lineHeight;
     }
     return true;
   };
 
-  // Section header (standard ATS format)
   const printSectionHeader = (title: string): boolean => {
     if (!checkPageBreak(config.sectionFontSize + 16)) return false;
     y += config.sectionGap;
     doc.setFontSize(config.sectionFontSize);
     doc.setFont("helvetica", "bold");
-    doc.text(title.toUpperCase(), config.margin, y);
-    y += 3;
-    doc.setLineWidth(0.5);
-    doc.line(config.margin, y, pageWidth - config.margin, y);
+    
+    const headerText = templateConf.sectionHeaderStyle === "uppercase" 
+      ? title.toUpperCase() 
+      : title;
+    
+    const xPos = templateConf.headerAlignment === "center" ? pageWidth / 2 : config.margin;
+    doc.text(headerText, xPos, y, { align: templateConf.headerAlignment === "center" ? "center" : "left" });
+    
+    if (templateConf.sectionHeaderStyle === "underline") {
+      y += 3;
+      doc.setLineWidth(0.5);
+      doc.line(config.margin, y, pageWidth - config.margin, y);
+    } else if (templateConf.sectionHeaderStyle === "boxed") {
+      const textWidth = doc.getTextWidth(headerText);
+      const boxX = templateConf.headerAlignment === "center" 
+        ? (pageWidth - textWidth) / 2 - 4 
+        : config.margin - 4;
+      doc.setDrawColor(100, 100, 100);
+      doc.setLineWidth(0.3);
+      doc.roundedRect(boxX, y - config.sectionFontSize + 2, textWidth + 8, config.sectionFontSize + 4, 2, 2, "S");
+      doc.setDrawColor(0, 0, 0);
+    }
+    
     y += config.sectionGap + 4;
     doc.setFont("helvetica", "normal");
     return true;
@@ -249,17 +323,22 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
 
   doc.setFont("helvetica", "bold");
   doc.setFontSize(config.headerFontSize);
-  doc.text(name, config.margin, y);
+  
+  const displayName = templateConf.nameStyle === "uppercase" ? name.toUpperCase() : name;
+  const nameAlign = templateConf.headerAlignment;
+  const nameX = nameAlign === "center" ? pageWidth / 2 : config.margin;
+  
+  doc.text(displayName, nameX, y, { align: nameAlign === "center" ? "center" : "left" });
   y += config.headerFontSize * 1.2;
 
   if (title) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(config.bodyFontSize + 1);
-    doc.text(title, config.margin, y);
+    doc.text(title, nameX, y, { align: nameAlign === "center" ? "center" : "left" });
     y += config.bodyFontSize * 1.4;
   }
 
-  // Contact info (single line or stacked)
+  // Contact info
   const contacts: string[] = [];
   if (portfolio.links?.email) contacts.push(portfolio.links.email);
   if (portfolio.links?.phone) contacts.push(portfolio.links.phone);
@@ -269,12 +348,24 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
 
   if (contacts.length > 0) {
     doc.setFontSize(config.bodyFontSize);
-    const contactText = contacts.join("  |  ");
-    const contactLines = doc.splitTextToSize(contactText, contentWidth);
-    contactLines.forEach((line: string) => {
-      doc.text(line, config.margin, y);
-      y += config.bodyFontSize * 1.2;
-    });
+    
+    if (templateConf.contactLayout === "stacked") {
+      for (const contact of contacts) {
+        doc.text(contact, config.margin, y);
+        y += config.bodyFontSize * 1.1;
+      }
+    } else {
+      const separator = templateConf.contactLayout === "centered" ? "  ·  " : "  |  ";
+      const contactText = contacts.join(separator);
+      const contactLines = doc.splitTextToSize(contactText, contentWidth);
+      const contactAlign = templateConf.contactLayout === "centered" ? "center" : "left";
+      const contactX = contactAlign === "center" ? pageWidth / 2 : config.margin;
+      
+      contactLines.forEach((line: string) => {
+        doc.text(line, contactX, y, { align: contactAlign === "center" ? "center" : "left" });
+        y += config.bodyFontSize * 1.2;
+      });
+    }
   }
 
   y += config.sectionGap / 2;
@@ -291,36 +382,34 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
   if (portfolio.experience && portfolio.experience.length > 0) {
     if (!printSectionHeader("Experience")) return doc;
     
+    const bulletChar = getBulletChar(templateConf.bulletStyle);
+    
     for (let i = 0; i < portfolio.experience.length; i++) {
       const exp = portfolio.experience[i];
       if (!checkPageBreak(40)) break;
       
-      // Company and Role on same line (bold)
       doc.setFont("helvetica", "bold");
       doc.setFontSize(config.bodyFontSize + 1);
       doc.text(exp.role, config.margin, y);
       
-      // Company name (normal)
       doc.setFont("helvetica", "normal");
       const roleWidth = doc.getTextWidth(exp.role);
       doc.text(` | ${exp.company}`, config.margin + roleWidth, y);
       y += config.bodyFontSize * 1.4;
 
-      // Period
       doc.setFontSize(config.bodyFontSize);
       doc.setFont("helvetica", "italic");
       doc.text(exp.period || "", config.margin, y);
       y += config.bodyFontSize * 1.3;
       doc.setFont("helvetica", "normal");
 
-      // Description - split into bullet points if possible
       if (exp.description) {
         const bullets = compressBullets(exp.description, maxBulletsPerRole);
         for (const bullet of bullets) {
           const shortenedBullet = shortenBullet(bullet, bulletMaxLength);
           if (!checkPageBreak(config.bodyFontSize * config.bulletLineHeight)) break;
           
-          const bulletText = `• ${shortenedBullet}`;
+          const bulletText = `${bulletChar} ${shortenedBullet}`;
           const wrappedBullet = doc.splitTextToSize(bulletText, contentWidth - 8);
           for (let idx = 0; idx < wrappedBullet.length; idx++) {
             doc.text(idx === 0 ? wrappedBullet[idx] : `  ${wrappedBullet[idx]}`, config.margin, y);
@@ -342,9 +431,8 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
     if (!printWrappedText(skillsText, config.bodyFontSize, config.lineHeight)) return doc;
   }
 
-  // ===== PROJECTS ===== (only if space allows)
+  // ===== PROJECTS =====
   if (portfolio.projects && portfolio.projects.length > 0) {
-    // Check if we have room for projects section
     const projectsEstimate = 30 + portfolio.projects.length * 40;
     if (checkPageBreak(Math.min(projectsEstimate, 80))) {
       if (printSectionHeader("Projects")) {
@@ -409,19 +497,19 @@ export function generateATSResumePDF(portfolio: PortfolioData, pageLimit: 1 | 2 
 }
 
 // Generate PDF blob for preview/download
-export function generateResumePDFBlob(portfolio: PortfolioData, pageLimit: 1 | 2 = 1): Blob {
-  const doc = generateATSResumePDF(portfolio, pageLimit);
+export function generateResumePDFBlob(portfolio: PortfolioData, pageLimit: 1 | 2 = 1, template: TemplateStyle = "classic"): Blob {
+  const doc = generateATSResumePDF(portfolio, pageLimit, template);
   return doc.output("blob");
 }
 
 // Generate data URL for preview
-export function generateResumePDFDataUrl(portfolio: PortfolioData, pageLimit: 1 | 2 = 1): string {
-  const doc = generateATSResumePDF(portfolio, pageLimit);
+export function generateResumePDFDataUrl(portfolio: PortfolioData, pageLimit: 1 | 2 = 1, template: TemplateStyle = "classic"): string {
+  const doc = generateATSResumePDF(portfolio, pageLimit, template);
   return doc.output("dataurlstring");
 }
 
 // Download the PDF
-export function downloadResumePDF(portfolio: PortfolioData, filename: string = "resume.pdf", pageLimit: 1 | 2 = 1) {
-  const doc = generateATSResumePDF(portfolio, pageLimit);
+export function downloadResumePDF(portfolio: PortfolioData, filename: string = "resume.pdf", pageLimit: 1 | 2 = 1, template: TemplateStyle = "classic") {
+  const doc = generateATSResumePDF(portfolio, pageLimit, template);
   doc.save(filename);
 }
