@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { 
   ArrowLeft, Save, Globe, Eye, EyeOff, Loader2, Plus, Trash2, 
-  GripVertical, ExternalLink, Settings, Palette, BarChart3, FileText, GitBranch, Star, Link as LinkIcon, Camera
+  GripVertical, ExternalLink, Settings, Palette, BarChart3, FileText, GitBranch, Star, Link as LinkIcon, Camera, Copy, Check
 } from "lucide-react";
 import type { User } from "@supabase/supabase-js";
 import { PortfolioPreview } from "@/components/editor/PortfolioPreview";
@@ -63,6 +63,7 @@ export default function Editor() {
   const [publishing, setPublishing] = useState(false);
   const [portfolio, setPortfolio] = useState<Portfolio | null>(null);
   const [activeTab, setActiveTab] = useState<"content" | "style" | "tools">("content");
+  const [linkCopied, setLinkCopied] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -188,10 +189,16 @@ export default function Editor() {
       if (error) throw error;
       
       setPortfolio({ ...portfolio, status: newStatus });
-      toast({ 
-        title: newStatus === "published" ? "Portfolio published!" : "Portfolio unpublished",
-        description: newStatus === "published" ? `Live at /${portfolio.username}` : undefined
-      });
+      
+      if (newStatus === "published") {
+        const publicUrl = `${window.location.origin}/p/${portfolio.username}`;
+        toast({ 
+          title: "Portfolio published! 🎉",
+          description: `Your portfolio is now live at: ${publicUrl}`,
+        });
+      } else {
+        toast({ title: "Portfolio unpublished" });
+      }
     } catch (error: unknown) {
       toast({ title: "Action failed", description: getClientErrorMessage(error), variant: "destructive" });
     } finally {
@@ -253,14 +260,34 @@ export default function Editor() {
           <div className="h-6 w-px bg-border" />
           <span className="text-sm text-muted-foreground">{portfolio.username}</span>
           {portfolio.status === "published" && (
-            <a 
-              href={`/p/${portfolio.username}`} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-sm text-primary hover:underline flex items-center gap-1"
-            >
-              View live <ExternalLink className="w-3 h-3" />
-            </a>
+            <div className="flex items-center gap-2">
+              <a 
+                href={`/p/${portfolio.username}`} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="text-sm text-primary hover:underline flex items-center gap-1"
+              >
+                View live <ExternalLink className="w-3 h-3" />
+              </a>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="h-7 px-2"
+                onClick={() => {
+                  const url = `${window.location.origin}/p/${portfolio.username}`;
+                  navigator.clipboard.writeText(url);
+                  setLinkCopied(true);
+                  setTimeout(() => setLinkCopied(false), 2000);
+                  toast({ title: "Link copied!", description: url });
+                }}
+              >
+                {linkCopied ? (
+                  <Check className="w-3 h-3 text-green-500" />
+                ) : (
+                  <Copy className="w-3 h-3" />
+                )}
+              </Button>
+            </div>
           )}
         </div>
         <div className="flex items-center gap-3">

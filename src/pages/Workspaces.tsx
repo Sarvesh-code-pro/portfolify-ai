@@ -201,12 +201,14 @@ export default function Workspaces() {
     setInviting(true);
 
     try {
-      // First check if this email is already a member or has a pending invite
+      const normalizedEmail = inviteEmail.trim().toLowerCase();
+      
+      // Check if this email is already a member or has a pending invite
       const { data: existingMember } = await supabase
         .from("workspace_members")
         .select("id")
         .eq("workspace_id", selectedWorkspace.id)
-        .eq("invited_email", inviteEmail.trim())
+        .eq("invited_email", normalizedEmail)
         .maybeSingle();
 
       if (existingMember) {
@@ -215,29 +217,23 @@ export default function Workspaces() {
         return;
       }
 
-      // Check if user exists by looking up their profile
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("user_id")
-        .limit(100);
+      // Generate a unique placeholder user_id for the invite
+      // This will be replaced with the real user_id when they accept
+      const placeholderUserId = crypto.randomUUID();
 
-      // We need to check auth.users by email - we'll use a workaround
-      // For now, we'll create the invite with just the email and the user can claim it
-      const insertData: Record<string, unknown> = {
+      const { error } = await supabase.from("workspace_members").insert({
         workspace_id: selectedWorkspace.id,
         role: inviteRole as "owner" | "admin" | "editor" | "viewer",
-        invited_email: inviteEmail.trim().toLowerCase(),
+        invited_email: normalizedEmail,
         invite_accepted: false,
-        user_id: user!.id, // Placeholder - will be updated when invite is accepted
-      };
-
-      const { error } = await supabase.from("workspace_members").insert(insertData as never);
+        user_id: placeholderUserId,
+      });
 
       if (error) throw error;
 
       toast({ 
         title: "Invitation sent!",
-        description: `An invitation has been sent to ${inviteEmail}. They can accept it once they sign up or log in.`
+        description: `An invitation has been sent to ${normalizedEmail}. They can accept it once they sign up or log in.`
       });
       setInviteEmail("");
       fetchMembers(selectedWorkspace.id);
