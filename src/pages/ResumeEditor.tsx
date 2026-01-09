@@ -9,7 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   ArrowLeft, Save, Download, Loader2, FileText, Target, 
-  Sparkles, Wand2, RotateCcw, History, ChevronDown, AlertCircle
+  Sparkles, Wand2, RotateCcw, History, ChevronDown, AlertCircle, Eye
 } from "lucide-react";
 import {
   Select,
@@ -29,6 +29,7 @@ import { ResumeATSScore } from "@/components/resume/ResumeATSScore";
 import { ResumeBulletEditor } from "@/components/resume/ResumeBulletEditor";
 import { ResumeJobOptimizer } from "@/components/resume/ResumeJobOptimizer";
 import { ResumeTemplateSelector } from "@/components/resume/ResumeTemplateSelector";
+import { downloadResumePDF } from "@/lib/pdf-generator";
 import { getClientErrorMessage } from "@/lib/error-utils";
 
 interface Experience {
@@ -277,9 +278,16 @@ export default function ResumeEditor() {
             {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Save
           </Button>
-          <Button variant="hero" size="sm" onClick={() => setPreviewOpen(true)}>
+          <Button variant="default" size="sm" onClick={() => setPreviewOpen(true)}>
+            <FileText className="w-4 h-4 mr-2" />
+            Preview
+          </Button>
+          <Button variant="hero" size="sm" onClick={() => {
+            const name = resume.name?.toLowerCase().replace(/\s+/g, "_") || "resume";
+            downloadResumePDF(effectiveContent, `${name}.pdf`, resume.page_limit as 1 | 2 || 1, resume.template as any || "classic");
+          }}>
             <Download className="w-4 h-4 mr-2" />
-            Preview & Export
+            Download PDF
           </Button>
         </div>
       </header>
