@@ -206,13 +206,17 @@ export default function Workspaces() {
       // Check if this email is already a member or has a pending invite
       const { data: existingMember } = await supabase
         .from("workspace_members")
-        .select("id")
+        .select("id, invite_accepted")
         .eq("workspace_id", selectedWorkspace.id)
         .eq("invited_email", normalizedEmail)
         .maybeSingle();
 
       if (existingMember) {
-        toast({ title: "This email already has an invitation", variant: "destructive" });
+        if (existingMember.invite_accepted) {
+          toast({ title: "This user is already a member", variant: "destructive" });
+        } else {
+          toast({ title: "This email already has a pending invitation", variant: "destructive" });
+        }
         setInviting(false);
         return;
       }
@@ -221,15 +225,18 @@ export default function Workspaces() {
       // This will be replaced with the real user_id when they accept
       const placeholderUserId = crypto.randomUUID();
 
-      const { error } = await supabase.from("workspace_members").insert({
+      const { data, error } = await supabase.from("workspace_members").insert({
         workspace_id: selectedWorkspace.id,
         role: inviteRole as "owner" | "admin" | "editor" | "viewer",
         invited_email: normalizedEmail,
         invite_accepted: false,
         user_id: placeholderUserId,
-      });
+      }).select().single();
 
-      if (error) throw error;
+      if (error) {
+        console.error("Insert error:", error);
+        throw error;
+      }
 
       toast({ 
         title: "Invitation sent!",
@@ -237,9 +244,14 @@ export default function Workspaces() {
       });
       setInviteEmail("");
       fetchMembers(selectedWorkspace.id);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error inviting member:", error);
-      toast({ title: "Failed to send invitation", variant: "destructive" });
+      const message = error?.message || error?.details || "Unknown error occurred";
+      toast({ 
+        title: "Failed to send invitation", 
+        description: message,
+        variant: "destructive" 
+      });
     } finally {
       setInviting(false);
     }
