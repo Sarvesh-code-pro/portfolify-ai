@@ -45,12 +45,16 @@ interface PDFConfig {
 type TemplateStyle = "classic" | "modern" | "minimal" | "professional" | "executive";
 
 interface TemplateConfig {
-  headerAlignment: "left" | "center";
-  sectionHeaderStyle: "underline" | "bold" | "uppercase" | "simple" | "boxed";
-  nameStyle: "bold" | "uppercase" | "normal";
-  bulletStyle: "bullet" | "dash" | "arrow";
-  contactLayout: "inline" | "stacked" | "centered";
+  headerAlignment: "left" | "center" | "right";
+  sectionHeaderStyle: "underline" | "bold" | "uppercase" | "simple" | "boxed" | "line-left" | "background";
+  nameStyle: "bold" | "uppercase" | "normal" | "large-caps";
+  bulletStyle: "bullet" | "dash" | "arrow" | "square" | "none";
+  contactLayout: "inline" | "stacked" | "centered" | "two-column" | "right-aligned";
   sectionSpacing: "compact" | "normal" | "spacious";
+  accentLine: boolean;
+  headerBorder: boolean;
+  sectionDividers: boolean;
+  skillsLayout: "inline" | "pills" | "columns";
 }
 
 const templateConfigs: Record<TemplateStyle, TemplateConfig> = {
@@ -61,14 +65,22 @@ const templateConfigs: Record<TemplateStyle, TemplateConfig> = {
     bulletStyle: "bullet",
     contactLayout: "inline",
     sectionSpacing: "normal",
+    accentLine: false,
+    headerBorder: false,
+    sectionDividers: false,
+    skillsLayout: "inline",
   },
   modern: {
-    headerAlignment: "center",
-    sectionHeaderStyle: "boxed",
-    nameStyle: "bold",
-    bulletStyle: "dash",
-    contactLayout: "centered",
+    headerAlignment: "left",
+    sectionHeaderStyle: "line-left",
+    nameStyle: "large-caps",
+    bulletStyle: "square",
+    contactLayout: "two-column",
     sectionSpacing: "compact",
+    accentLine: true,
+    headerBorder: true,
+    sectionDividers: false,
+    skillsLayout: "pills",
   },
   minimal: {
     headerAlignment: "center",
@@ -77,22 +89,34 @@ const templateConfigs: Record<TemplateStyle, TemplateConfig> = {
     bulletStyle: "dash",
     contactLayout: "centered",
     sectionSpacing: "spacious",
+    accentLine: false,
+    headerBorder: false,
+    sectionDividers: true,
+    skillsLayout: "inline",
   },
   professional: {
     headerAlignment: "left",
-    sectionHeaderStyle: "bold",
+    sectionHeaderStyle: "background",
     nameStyle: "bold",
     bulletStyle: "bullet",
-    contactLayout: "stacked",
+    contactLayout: "right-aligned",
     sectionSpacing: "normal",
+    accentLine: false,
+    headerBorder: true,
+    sectionDividers: false,
+    skillsLayout: "columns",
   },
   executive: {
     headerAlignment: "center",
     sectionHeaderStyle: "uppercase",
-    nameStyle: "uppercase",
+    nameStyle: "large-caps",
     bulletStyle: "arrow",
     contactLayout: "centered",
     sectionSpacing: "spacious",
+    accentLine: true,
+    headerBorder: false,
+    sectionDividers: true,
+    skillsLayout: "inline",
   },
 };
 
@@ -219,6 +243,8 @@ function getBulletChar(style: TemplateConfig["bulletStyle"]): string {
   switch (style) {
     case "dash": return "–";
     case "arrow": return "›";
+    case "square": return "▪";
+    case "none": return "";
     default: return "•";
   }
 }
@@ -287,6 +313,16 @@ export function generateATSResumePDF(
   const printSectionHeader = (title: string): boolean => {
     if (!checkPageBreak(config.sectionFontSize + 16)) return false;
     y += config.sectionGap;
+    
+    // Add section divider if enabled
+    if (templateConf.sectionDividers) {
+      doc.setDrawColor(200, 200, 200);
+      doc.setLineWidth(0.3);
+      doc.line(config.margin, y - 2, pageWidth - config.margin, y - 2);
+      doc.setDrawColor(0, 0, 0);
+      y += 4;
+    }
+    
     doc.setFontSize(config.sectionFontSize);
     doc.setFont("helvetica", "bold");
     
@@ -294,8 +330,28 @@ export function generateATSResumePDF(
       ? title.toUpperCase() 
       : title;
     
-    const xPos = templateConf.headerAlignment === "center" ? pageWidth / 2 : config.margin;
-    doc.text(headerText, xPos, y, { align: templateConf.headerAlignment === "center" ? "center" : "left" });
+    // Handle different section header styles
+    if (templateConf.sectionHeaderStyle === "line-left") {
+      // Vertical line before text
+      doc.setLineWidth(2);
+      doc.setDrawColor(60, 60, 60);
+      doc.line(config.margin, y - config.sectionFontSize + 3, config.margin, y + 2);
+      doc.setDrawColor(0, 0, 0);
+      doc.text(headerText, config.margin + 8, y);
+    } else if (templateConf.sectionHeaderStyle === "background") {
+      // Gray background behind text
+      const textWidth = doc.getTextWidth(headerText);
+      doc.setFillColor(240, 240, 240);
+      doc.rect(config.margin, y - config.sectionFontSize + 2, contentWidth, config.sectionFontSize + 6, "F");
+      doc.setFillColor(255, 255, 255);
+      doc.text(headerText, config.margin + 4, y);
+    } else {
+      const xPos = templateConf.headerAlignment === "center" ? pageWidth / 2 : 
+                   templateConf.headerAlignment === "right" ? pageWidth - config.margin : config.margin;
+      const align = templateConf.headerAlignment === "center" ? "center" : 
+                    templateConf.headerAlignment === "right" ? "right" : "left";
+      doc.text(headerText, xPos, y, { align });
+    }
     
     if (templateConf.sectionHeaderStyle === "underline") {
       y += 3;
@@ -321,20 +377,49 @@ export function generateATSResumePDF(
   const name = portfolio.hero_title?.split(" - ")[0]?.trim() || "Name";
   const title = portfolio.hero_title?.split(" - ")[1]?.trim() || portfolio.hero_subtitle || "";
 
+  // Draw accent line at top if enabled (modern template)
+  if (templateConf.accentLine) {
+    doc.setFillColor(40, 40, 40);
+    doc.rect(0, 0, pageWidth, 4, "F");
+    doc.setFillColor(255, 255, 255);
+  }
+
+  // Draw header border if enabled
+  if (templateConf.headerBorder) {
+    doc.setDrawColor(180, 180, 180);
+    doc.setLineWidth(0.5);
+    const borderY = y + config.headerFontSize * 2 + (title ? config.bodyFontSize * 1.5 : 0) + 10;
+    doc.line(config.margin, borderY, pageWidth - config.margin, borderY);
+    doc.setDrawColor(0, 0, 0);
+  }
+
   doc.setFont("helvetica", "bold");
-  doc.setFontSize(config.headerFontSize);
+  doc.setFontSize(templateConf.nameStyle === "large-caps" ? config.headerFontSize + 4 : config.headerFontSize);
   
-  const displayName = templateConf.nameStyle === "uppercase" ? name.toUpperCase() : name;
+  const displayName = (templateConf.nameStyle === "uppercase" || templateConf.nameStyle === "large-caps") 
+    ? name.toUpperCase() : name;
+  
   const nameAlign = templateConf.headerAlignment;
-  const nameX = nameAlign === "center" ? pageWidth / 2 : config.margin;
+  const nameX = nameAlign === "center" ? pageWidth / 2 : 
+                nameAlign === "right" ? pageWidth - config.margin : config.margin;
   
-  doc.text(displayName, nameX, y, { align: nameAlign === "center" ? "center" : "left" });
-  y += config.headerFontSize * 1.2;
+  // Add letter spacing for large-caps style
+  if (templateConf.nameStyle === "large-caps") {
+    doc.setCharSpace(1.5);
+  }
+  
+  doc.text(displayName, nameX, y, { 
+    align: nameAlign === "center" ? "center" : nameAlign === "right" ? "right" : "left" 
+  });
+  doc.setCharSpace(0);
+  y += config.headerFontSize * 1.3;
 
   if (title) {
     doc.setFont("helvetica", "normal");
     doc.setFontSize(config.bodyFontSize + 1);
-    doc.text(title, nameX, y, { align: nameAlign === "center" ? "center" : "left" });
+    doc.text(title, nameX, y, { 
+      align: nameAlign === "center" ? "center" : nameAlign === "right" ? "right" : "left" 
+    });
     y += config.bodyFontSize * 1.4;
   }
 
@@ -354,6 +439,23 @@ export function generateATSResumePDF(
         doc.text(contact, config.margin, y);
         y += config.bodyFontSize * 1.1;
       }
+    } else if (templateConf.contactLayout === "two-column") {
+      // Two column layout: name/title on left, contacts on right
+      const contactText = contacts.join("  |  ");
+      const contactLines = doc.splitTextToSize(contactText, contentWidth * 0.65);
+      contactLines.forEach((line: string) => {
+        doc.text(line, pageWidth - config.margin, y - config.headerFontSize * 0.5, { align: "right" });
+        y += config.bodyFontSize * 1.1;
+      });
+      y -= contactLines.length * config.bodyFontSize * 1.1; // Reset y since we drew above
+    } else if (templateConf.contactLayout === "right-aligned") {
+      // Right-aligned contact info
+      const contactText = contacts.join("  |  ");
+      const contactLines = doc.splitTextToSize(contactText, contentWidth);
+      contactLines.forEach((line: string) => {
+        doc.text(line, pageWidth - config.margin, y, { align: "right" });
+        y += config.bodyFontSize * 1.2;
+      });
     } else {
       const separator = templateConf.contactLayout === "centered" ? "  ·  " : "  |  ";
       const contactText = contacts.join(separator);
