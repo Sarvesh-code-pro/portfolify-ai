@@ -108,10 +108,24 @@ export type Database = {
             referencedColumns: ["id"]
           },
           {
+            foreignKeyName: "portfolio_ab_tests_version_a_id_fkey"
+            columns: ["version_a_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolios"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "portfolio_ab_tests_version_b_id_fkey"
             columns: ["version_b_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_ab_tests_version_b_id_fkey"
+            columns: ["version_b_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolios"
             referencedColumns: ["id"]
           },
         ]
@@ -147,6 +161,13 @@ export type Database = {
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_analytics_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolios"
             referencedColumns: ["id"]
           },
         ]
@@ -185,6 +206,13 @@ export type Database = {
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_link_clicks_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolios"
             referencedColumns: ["id"]
           },
         ]
@@ -232,6 +260,13 @@ export type Database = {
             columns: ["portfolio_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolio_links_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolios"
             referencedColumns: ["id"]
           },
         ]
@@ -363,6 +398,13 @@ export type Database = {
             columns: ["parent_portfolio_id"]
             isOneToOne: false
             referencedRelation: "portfolios"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "portfolios_parent_portfolio_id_fkey"
+            columns: ["parent_portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolios"
             referencedColumns: ["id"]
           },
           {
@@ -535,6 +577,13 @@ export type Database = {
             referencedRelation: "portfolios"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "resumes_portfolio_id_fkey"
+            columns: ["portfolio_id"]
+            isOneToOne: false
+            referencedRelation: "public_portfolios"
+            referencedColumns: ["id"]
+          },
         ]
       }
       user_roles: {
@@ -669,7 +718,108 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      public_portfolios: {
+        Row: {
+          about_text: string | null
+          certificates: Json | null
+          color_mode: string | null
+          contact_settings: Json | null
+          created_at: string | null
+          custom_sections: Json | null
+          education: Json | null
+          experience: Json | null
+          hero_subtitle: string | null
+          hero_title: string | null
+          id: string | null
+          links: Json | null
+          profile_picture_url: string | null
+          projects: Json | null
+          published_at: string | null
+          quality_score: number | null
+          role: Database["public"]["Enums"]["portfolio_role"] | null
+          section_order: Json | null
+          section_titles: Json | null
+          section_visibility: Json | null
+          seo_settings: Json | null
+          skills: Json | null
+          status: Database["public"]["Enums"]["portfolio_status"] | null
+          template: string | null
+          testimonials: Json | null
+          theme: Json | null
+          updated_at: string | null
+          username: string | null
+          version_emphasis: string | null
+          version_history: Json | null
+          version_name: string | null
+        }
+        Insert: {
+          about_text?: string | null
+          certificates?: Json | null
+          color_mode?: string | null
+          contact_settings?: Json | null
+          created_at?: string | null
+          custom_sections?: Json | null
+          education?: Json | null
+          experience?: Json | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
+          id?: string | null
+          links?: Json | null
+          profile_picture_url?: string | null
+          projects?: Json | null
+          published_at?: string | null
+          quality_score?: number | null
+          role?: Database["public"]["Enums"]["portfolio_role"] | null
+          section_order?: Json | null
+          section_titles?: Json | null
+          section_visibility?: Json | null
+          seo_settings?: Json | null
+          skills?: Json | null
+          status?: Database["public"]["Enums"]["portfolio_status"] | null
+          template?: string | null
+          testimonials?: Json | null
+          theme?: Json | null
+          updated_at?: string | null
+          username?: string | null
+          version_emphasis?: string | null
+          version_history?: Json | null
+          version_name?: string | null
+        }
+        Update: {
+          about_text?: string | null
+          certificates?: Json | null
+          color_mode?: string | null
+          contact_settings?: Json | null
+          created_at?: string | null
+          custom_sections?: Json | null
+          education?: Json | null
+          experience?: Json | null
+          hero_subtitle?: string | null
+          hero_title?: string | null
+          id?: string | null
+          links?: Json | null
+          profile_picture_url?: string | null
+          projects?: Json | null
+          published_at?: string | null
+          quality_score?: number | null
+          role?: Database["public"]["Enums"]["portfolio_role"] | null
+          section_order?: Json | null
+          section_titles?: Json | null
+          section_visibility?: Json | null
+          seo_settings?: Json | null
+          skills?: Json | null
+          status?: Database["public"]["Enums"]["portfolio_status"] | null
+          template?: string | null
+          testimonials?: Json | null
+          theme?: Json | null
+          updated_at?: string | null
+          username?: string | null
+          version_emphasis?: string | null
+          version_history?: Json | null
+          version_name?: string | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       accept_workspace_invite: { Args: { invite_id: string }; Returns: string }

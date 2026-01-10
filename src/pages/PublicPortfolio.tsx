@@ -97,12 +97,13 @@ export default function PublicPortfolio() {
 
   useEffect(() => {
     const fetchPortfolio = async () => {
+      // Use the public_portfolios view which excludes sensitive columns (resume_text, user_id, etc.)
+      // Cast to unknown first to bypass type checking since view isn't in generated types
       const { data, error } = await supabase
-        .from("portfolios")
+        .from("public_portfolios" as any)
         .select("id, username, role, status, hero_title, hero_subtitle, about_text, skills, projects, experience, education, links, theme, template, profile_picture_url, testimonials, contact_settings, seo_settings, section_visibility, section_titles")
         .eq("username", username)
-        .eq("status", "published")
-        .single();
+        .single() as { data: PortfolioData | null; error: any };
 
       if (error || !data) {
         setNotFound(true);
