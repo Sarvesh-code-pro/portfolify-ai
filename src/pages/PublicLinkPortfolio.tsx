@@ -104,11 +104,12 @@ export default function PublicLinkPortfolio() {
         section_visibility: (link.section_visibility as unknown as SectionVisibility) || defaultSectionVisibility,
       });
 
+      // Use public_portfolios view which excludes sensitive columns (resume_text, user_id, etc.)
       const { data, error } = await supabase
-        .from("portfolios")
+        .from("public_portfolios" as any)
         .select("id, username, role, hero_title, hero_subtitle, about_text, skills, projects, experience, education, links, profile_picture_url, testimonials, contact_settings, seo_settings, section_titles")
         .eq("id", link.portfolio_id)
-        .single();
+        .single() as { data: PortfolioData | null; error: any };
 
       if (error || !data) {
         setNotFound(true);
