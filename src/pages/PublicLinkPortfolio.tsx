@@ -86,6 +86,8 @@ export default function PublicLinkPortfolio() {
 
   useEffect(() => {
     const fetchPortfolio = async () => {
+      console.log("[PublicLinkPortfolio] Fetching portfolio for slug:", slug);
+      
       const { data: link, error: linkError } = await supabase
         .from("portfolio_links")
         .select("*")
@@ -93,7 +95,10 @@ export default function PublicLinkPortfolio() {
         .eq("is_active", true)
         .single();
 
+      console.log("[PublicLinkPortfolio] Link query result - data:", link, "error:", linkError);
+
       if (linkError || !link) {
+        console.error("[PublicLinkPortfolio] Link not found or error:", linkError);
         setNotFound(true);
         setLoading(false);
         return;
@@ -104,25 +109,31 @@ export default function PublicLinkPortfolio() {
         section_visibility: (link.section_visibility as unknown as SectionVisibility) || defaultSectionVisibility,
       });
 
-      // Use public_portfolios view which excludes sensitive columns (resume_text, user_id, etc.)
+      // Use public_portfolios view which excludes sensitive columns
       const { data, error } = await supabase
-        .from("public_portfolios" as any)
+        .from("public_portfolios")
         .select("id, username, role, hero_title, hero_subtitle, about_text, skills, projects, experience, education, links, profile_picture_url, testimonials, contact_settings, seo_settings, section_titles")
         .eq("id", link.portfolio_id)
-        .single() as { data: PortfolioData | null; error: any };
+        .single();
+
+      console.log("[PublicLinkPortfolio] Portfolio query result - data:", data, "error:", error);
 
       if (error || !data) {
+        console.error("[PublicLinkPortfolio] Portfolio not found or error:", error);
         setNotFound(true);
         setLoading(false);
         return;
       }
 
-      try {
-        await supabase.from("portfolio_links").update({ view_count: (link.view_count || 0) + 1 }).eq("id", link.id);
-      } catch (e) {}
+      // Update view count (don't block on this)
+      supabase.from("portfolio_links")
+        .update({ view_count: (link.view_count || 0) + 1 })
+        .eq("id", link.id)
+        .then(() => {});
 
       setPortfolio({
         ...data,
+        role: data.role || "developer",
         skills: Array.isArray(data.skills) ? data.skills as string[] : [],
         projects: Array.isArray(data.projects) ? data.projects as unknown as Project[] : [],
         experience: Array.isArray(data.experience) ? data.experience as unknown as Experience[] : [],

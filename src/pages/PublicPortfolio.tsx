@@ -97,31 +97,32 @@ export default function PublicPortfolio() {
 
   useEffect(() => {
     const fetchPortfolio = async () => {
+      console.log("[PublicPortfolio] Fetching portfolio for username:", username);
+      
       // Use the public_portfolios view which excludes sensitive columns (resume_text, user_id, etc.)
-      // Cast to unknown first to bypass type checking since view isn't in generated types
       const { data, error } = await supabase
-        .from("public_portfolios" as any)
+        .from("public_portfolios")
         .select("id, username, role, status, hero_title, hero_subtitle, about_text, skills, projects, experience, education, links, theme, template, profile_picture_url, testimonials, contact_settings, seo_settings, section_visibility, section_titles")
         .eq("username", username)
-        .single() as { data: PortfolioData | null; error: any };
+        .single();
+
+      console.log("[PublicPortfolio] Query result - data:", data, "error:", error);
 
       if (error || !data) {
+        console.error("[PublicPortfolio] Portfolio not found or error:", error);
         setNotFound(true);
         setLoading(false);
         return;
       }
 
-      // Track view
-      try {
-        await supabase.functions.invoke("track-analytics", {
-          body: { portfolioId: data.id, action: "view" }
-        });
-      } catch (e) {
-        console.error("Failed to track view:", e);
-      }
+      // Track view (don't block on this)
+      supabase.functions.invoke("track-analytics", {
+        body: { portfolioId: data.id, action: "view" }
+      }).catch((e) => console.error("Failed to track view:", e));
 
       setPortfolio({
         ...data,
+        role: data.role || "developer",
         skills: Array.isArray(data.skills) ? data.skills as string[] : [],
         projects: Array.isArray(data.projects) ? data.projects as unknown as Project[] : [],
         experience: Array.isArray(data.experience) ? data.experience as unknown as Experience[] : [],
