@@ -108,35 +108,25 @@ export default function Workspaces() {
   const fetchPendingInvites = async () => {
     if (!user?.email) return;
 
-    // Fetch invites by email (for invites sent before user signed up)
-    const { data: emailInvites } = await supabase
-      .from("workspace_members")
-      .select("id, workspace_id, role, invited_email")
-      .eq("invited_email", user.email)
-      .eq("invite_accepted", false);
+    // Fetch pending invites from workspace_invites table (proper invite flow)
+    const { data: invites, error } = await supabase
+      .from("workspace_invites")
+      .select("id, workspace_id, role")
+      .is("accepted_at", null);
 
-    // Also fetch by user_id (for invites after user exists)
-    const { data: userInvites } = await supabase
-      .from("workspace_members")
-      .select("id, workspace_id, role, invited_email")
-      .eq("user_id", user.id)
-      .eq("invite_accepted", false);
+    if (error) {
+      console.error("Error fetching invites:", error);
+      return;
+    }
 
-    const allInvites = [...(emailInvites || []), ...(userInvites || [])];
-    
-    // Deduplicate and fetch workspace names
-    const uniqueInvites = allInvites.filter((inv, idx, arr) => 
-      arr.findIndex(i => i.id === inv.id) === idx
-    );
-
-    if (uniqueInvites.length > 0) {
-      const workspaceIds = uniqueInvites.map(i => i.workspace_id);
+    if (invites && invites.length > 0) {
+      const workspaceIds = invites.map(i => i.workspace_id);
       const { data: workspacesData } = await supabase
         .from("workspaces")
         .select("id, name")
         .in("id", workspaceIds);
 
-      const invitesWithNames = uniqueInvites.map(inv => ({
+      const invitesWithNames = invites.map(inv => ({
         id: inv.id,
         workspace_id: inv.workspace_id,
         workspace_name: workspacesData?.find(w => w.id === inv.workspace_id)?.name || "Unknown Workspace",
@@ -144,6 +134,8 @@ export default function Workspaces() {
       }));
 
       setPendingInvites(invitesWithNames);
+    } else {
+      setPendingInvites([]);
     }
   };
 
@@ -197,23 +189,23 @@ export default function Workspaces() {
   };
 
   const handleInviteMember = async () => {
-    if (!selectedWorkspace || !inviteEmail.trim()) return;
+    if (!selectedWorkspace || !inviteEmail.trim() || !user) return;
     setInviting(true);
 
     try {
       const normalizedEmail = inviteEmail.trim().toLowerCase();
       
-      // Check if this email is already a member or has a pending invite
-      const { data: existingMember } = await supabase
-        .from("workspace_members")
-        .select("id, invite_accepted")
+      // Check if this email already has a pending invite in workspace_invites
+      const { data: existingInvite } = await supabase
+        .from("workspace_invites")
+        .select("id, accepted_at")
         .eq("workspace_id", selectedWorkspace.id)
         .eq("invited_email", normalizedEmail)
         .maybeSingle();
 
-      if (existingMember) {
-        if (existingMember.invite_accepted) {
-          toast({ title: "This user is already a member", variant: "destructive" });
+      if (existingInvite) {
+        if (existingInvite.accepted_at) {
+          toast({ title: "This user has already accepted an invitation", variant: "destructive" });
         } else {
           toast({ title: "This email already has a pending invitation", variant: "destructive" });
         }
@@ -221,17 +213,27 @@ export default function Workspaces() {
         return;
       }
 
-      // Generate a unique placeholder user_id for the invite
-      // This will be replaced with the real user_id when they accept
-      const placeholderUserId = crypto.randomUUID();
+      // Check if already a member
+      const { data: existingMember } = await supabase
+        .from("workspace_members")
+        .select("id")
+        .eq("workspace_id", selectedWorkspace.id)
+        .eq("invited_email", normalizedEmail)
+        .maybeSingle();
 
-      const { data, error } = await supabase.from("workspace_members").insert({
+      if (existingMember) {
+        toast({ title: "This user is already a member", variant: "destructive" });
+        setInviting(false);
+        return;
+      }
+
+      // Use workspace_invites table - proper invite flow without fake user_id
+      const { error } = await supabase.from("workspace_invites").insert({
         workspace_id: selectedWorkspace.id,
         role: inviteRole as "owner" | "admin" | "editor" | "viewer",
         invited_email: normalizedEmail,
-        invite_accepted: false,
-        user_id: placeholderUserId,
-      }).select().single();
+        invited_by: user.id,
+      });
 
       if (error) {
         console.error("Insert error:", error);
@@ -262,22 +264,23 @@ export default function Workspaces() {
     setAcceptingInvite(inviteId);
 
     try {
-      const { error } = await supabase
-        .from("workspace_members")
-        .update({
-          invite_accepted: true,
-          user_id: user.id, // Update to the actual user's ID
-        })
-        .eq("id", inviteId);
+      // Use the database function to accept the invite properly
+      const { data, error } = await supabase.rpc("accept_workspace_invite", {
+        invite_id: inviteId,
+      });
 
       if (error) throw error;
 
       toast({ title: "Invitation accepted!" });
       setPendingInvites(prev => prev.filter(i => i.id !== inviteId));
       fetchWorkspaces();
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error accepting invite:", error);
-      toast({ title: "Failed to accept invitation", variant: "destructive" });
+      toast({ 
+        title: "Failed to accept invitation", 
+        description: error?.message || "Unknown error",
+        variant: "destructive" 
+      });
     } finally {
       setAcceptingInvite(null);
     }
@@ -285,18 +288,22 @@ export default function Workspaces() {
 
   const handleDeclineInvite = async (inviteId: string) => {
     try {
-      const { error } = await supabase
-        .from("workspace_members")
-        .delete()
-        .eq("id", inviteId);
+      // Use the database function to decline the invite
+      const { data, error } = await supabase.rpc("decline_workspace_invite", {
+        invite_id: inviteId,
+      });
 
       if (error) throw error;
 
       toast({ title: "Invitation declined" });
       setPendingInvites(prev => prev.filter(i => i.id !== inviteId));
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error declining invite:", error);
-      toast({ title: "Failed to decline invitation", variant: "destructive" });
+      toast({ 
+        title: "Failed to decline invitation",
+        description: error?.message || "Unknown error",
+        variant: "destructive" 
+      });
     }
   };
 
