@@ -59,9 +59,13 @@ export default function Dashboard() {
   }, [user]);
 
   const fetchPortfolios = async () => {
+    if (!user) return;
+    
+    // CRITICAL: Filter portfolios by user_id to ensure users only see their own portfolios
     const { data, error } = await supabase
       .from("portfolios")
       .select("id, username, role, status, hero_title, created_at, updated_at, quality_score, workspace_id")
+      .eq("user_id", user.id)
       .order("created_at", { ascending: false });
 
     if (!error && data) {
