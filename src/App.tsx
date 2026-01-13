@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { AuthProvider } from "@/contexts/AuthContext";
+import AppErrorBoundary from "@/components/AppErrorBoundary";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
@@ -32,31 +33,35 @@ const App = () => (
         <AuthProvider>
           <Toaster />
           <Sonner />
-          <BrowserRouter>
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/auth" element={<Auth />} />
-              <Route path="/onboarding" element={<Onboarding />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/create" element={<CreatePortfolio />} />
-              <Route path="/create/resume" element={<CreateFromResume />} />
-              <Route path="/create/linkedin" element={<CreateFromLinkedIn />} />
-              <Route path="/create/details" element={<PortfolioDetails />} />
-              <Route path="/editor/:id" element={<Editor />} />
-              <Route path="/p/:username" element={<PublicPortfolio />} />
-              <Route path="/link/:slug" element={<PublicLinkPortfolio />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/workspaces" element={<Workspaces />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/resumes" element={<Resumes />} />
-              <Route path="/resumes/:id" element={<ResumeEditor />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+          <AppErrorBoundary>
+            <BrowserRouter>
+              <Routes>
+                <Route path="/" element={<Index />} />
+                <Route path="/auth" element={<Auth />} />
+                <Route path="/onboarding" element={<Onboarding />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/create" element={<CreatePortfolio />} />
+                <Route path="/create/resume" element={<CreateFromResume />} />
+                <Route path="/create/linkedin" element={<CreateFromLinkedIn />} />
+                <Route path="/create/details" element={<PortfolioDetails />} />
+                <Route path="/editor/:id" element={<Editor />} />
+                <Route path="/p/:username" element={<PublicPortfolio />} />
+                <Route path="/link/:slug" element={<PublicLinkPortfolio />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/workspaces" element={<Workspaces />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/resumes" element={<Resumes />} />
+                <Route path="/resumes/:id" element={<ResumeEditor />} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </AppErrorBoundary>
         </AuthProvider>
       </TooltipProvider>
     </QueryClientProvider>
   </HelmetProvider>
 );
+
+export default App;
 
 export default App;

@@ -120,20 +120,78 @@ export default function PublicPortfolio() {
         body: { portfolioId: data.id, action: "view" }
       }).catch((e) => console.error("Failed to track view:", e));
 
+      const rawVisibility = data.section_visibility as unknown;
+      const mergedVisibility =
+        rawVisibility &&
+        typeof rawVisibility === "object" &&
+        !Array.isArray(rawVisibility)
+          ? {
+              ...defaultSectionVisibility,
+              ...(rawVisibility as Partial<SectionVisibility>),
+            }
+          : defaultSectionVisibility;
+
+      const rawTitles = data.section_titles as unknown;
+      const mergedTitles =
+        rawTitles && typeof rawTitles === "object" && !Array.isArray(rawTitles)
+          ? {
+              ...defaultSectionTitles,
+              ...(rawTitles as Partial<SectionTitles>),
+            }
+          : defaultSectionTitles;
+
+      const rawContact = data.contact_settings as unknown;
+      const mergedContact =
+        rawContact && typeof rawContact === "object" && !Array.isArray(rawContact)
+          ? {
+              ...defaultContactSettings,
+              ...(rawContact as Partial<ContactSettings>),
+            }
+          : defaultContactSettings;
+
+      const rawSeo = data.seo_settings as unknown;
+      const mergedSeo: SEOSettings =
+        rawSeo && typeof rawSeo === "object" && !Array.isArray(rawSeo)
+          ? {
+              meta_title: null,
+              meta_description: null,
+              favicon_url: null,
+              og_image_url: null,
+              ...(rawSeo as Partial<SEOSettings>),
+            }
+          : {
+              meta_title: null,
+              meta_description: null,
+              favicon_url: null,
+              og_image_url: null,
+            };
+
       setPortfolio({
         ...data,
         role: data.role || "developer",
-        skills: Array.isArray(data.skills) ? data.skills as string[] : [],
-        projects: Array.isArray(data.projects) ? data.projects as unknown as Project[] : [],
-        experience: Array.isArray(data.experience) ? data.experience as unknown as Experience[] : [],
+        skills: Array.isArray(data.skills) ? (data.skills as string[]) : [],
+        projects: Array.isArray(data.projects)
+          ? (data.projects as unknown as Project[])
+          : [],
+        experience: Array.isArray(data.experience)
+          ? (data.experience as unknown as Experience[])
+          : [],
         education: Array.isArray(data.education) ? data.education : [],
-        links: data.links as PortfolioData["links"] || {},
-        theme: data.theme as PortfolioData["theme"] || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" },
-        testimonials: Array.isArray(data.testimonials) ? data.testimonials as unknown as Testimonial[] : [],
-        contact_settings: (data.contact_settings as unknown as ContactSettings) || defaultContactSettings,
-        seo_settings: (data.seo_settings as unknown as SEOSettings) || { meta_title: null, meta_description: null, favicon_url: null, og_image_url: null },
-        section_visibility: data.section_visibility as SectionVisibility || defaultSectionVisibility,
-        section_titles: data.section_titles as SectionTitles || defaultSectionTitles,
+        links: (data.links as PortfolioData["links"]) || {},
+        theme:
+          (data.theme as PortfolioData["theme"]) ||
+          ({
+            primaryColor: "#3B82F6",
+            backgroundColor: "#0F172A",
+            textColor: "#F8FAFC",
+          } satisfies PortfolioData["theme"]),
+        testimonials: Array.isArray(data.testimonials)
+          ? (data.testimonials as unknown as Testimonial[])
+          : [],
+        contact_settings: mergedContact,
+        seo_settings: mergedSeo,
+        section_visibility: mergedVisibility,
+        section_titles: mergedTitles,
       });
       setLoading(false);
     };
