@@ -104,9 +104,20 @@ export default function PublicLinkPortfolio() {
         return;
       }
 
+      const rawLinkVisibility = link.section_visibility as unknown;
+      const mergedLinkVisibility =
+        rawLinkVisibility &&
+        typeof rawLinkVisibility === "object" &&
+        !Array.isArray(rawLinkVisibility)
+          ? {
+              ...defaultSectionVisibility,
+              ...(rawLinkVisibility as Partial<SectionVisibility>),
+            }
+          : defaultSectionVisibility;
+
       setLinkData({
         ...link,
-        section_visibility: (link.section_visibility as unknown as SectionVisibility) || defaultSectionVisibility,
+        section_visibility: mergedLinkVisibility,
       });
 
       // Use public_portfolios view which excludes sensitive columns
@@ -131,18 +142,59 @@ export default function PublicLinkPortfolio() {
         .eq("id", link.id)
         .then(() => {});
 
+      const rawTitles = data.section_titles as unknown;
+      const mergedTitles =
+        rawTitles && typeof rawTitles === "object" && !Array.isArray(rawTitles)
+          ? {
+              ...defaultSectionTitles,
+              ...(rawTitles as Partial<SectionTitles>),
+            }
+          : defaultSectionTitles;
+
+      const rawContact = data.contact_settings as unknown;
+      const mergedContact =
+        rawContact && typeof rawContact === "object" && !Array.isArray(rawContact)
+          ? {
+              ...defaultContactSettings,
+              ...(rawContact as Partial<ContactSettings>),
+            }
+          : defaultContactSettings;
+
+      const rawSeo = data.seo_settings as unknown;
+      const mergedSeo: SEOSettings =
+        rawSeo && typeof rawSeo === "object" && !Array.isArray(rawSeo)
+          ? {
+              meta_title: null,
+              meta_description: null,
+              favicon_url: null,
+              og_image_url: null,
+              ...(rawSeo as Partial<SEOSettings>),
+            }
+          : {
+              meta_title: null,
+              meta_description: null,
+              favicon_url: null,
+              og_image_url: null,
+            };
+
       setPortfolio({
         ...data,
         role: data.role || "developer",
-        skills: Array.isArray(data.skills) ? data.skills as string[] : [],
-        projects: Array.isArray(data.projects) ? data.projects as unknown as Project[] : [],
-        experience: Array.isArray(data.experience) ? data.experience as unknown as Experience[] : [],
+        skills: Array.isArray(data.skills) ? (data.skills as string[]) : [],
+        projects: Array.isArray(data.projects)
+          ? (data.projects as unknown as Project[])
+          : [],
+        experience: Array.isArray(data.experience)
+          ? (data.experience as unknown as Experience[])
+          : [],
         education: Array.isArray(data.education) ? data.education : [],
-        links: data.links as PortfolioData["links"] || {},
-        testimonials: Array.isArray(data.testimonials) ? data.testimonials as unknown as Testimonial[] : [],
-        contact_settings: (data.contact_settings as unknown as ContactSettings) || defaultContactSettings,
-        seo_settings: (data.seo_settings as unknown as SEOSettings) || { meta_title: null, meta_description: null, favicon_url: null, og_image_url: null },
-        section_titles: (data.section_titles as unknown as SectionTitles) || defaultSectionTitles,
+        links: (data.links as PortfolioData["links"]) || {},
+        testimonials: Array.isArray(data.testimonials)
+          ? (data.testimonials as unknown as Testimonial[])
+          : [],
+        contact_settings: mergedContact,
+        seo_settings: mergedSeo,
+        section_titles: mergedTitles,
       });
       setLoading(false);
     };
