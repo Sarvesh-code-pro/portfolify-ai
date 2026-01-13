@@ -21,7 +21,7 @@ interface PortfolioProjectsProps {
 }
 
 interface ProjectModalProps {
-  project: Project;
+  project: Project | null;
   isOpen: boolean;
   onClose: () => void;
   onLinkClick?: (linkType: string, linkUrl: string) => void;
@@ -29,9 +29,15 @@ interface ProjectModalProps {
 
 function ProjectModal({ project, isOpen, onClose, onLinkClick }: ProjectModalProps) {
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
-  const images = project.images?.length ? project.images : project.featured_image ? [project.featured_image] : [];
-  
-  const formatUrl = (url: string) => url.startsWith("http") ? url : `https://${url}`;
+
+  const images =
+    project?.images?.length
+      ? project.images
+      : project?.featured_image
+        ? [project.featured_image]
+        : [];
+
+  const formatUrl = (url: string) => (url.startsWith("http") ? url : `https://${url}`);
 
   const nextImage = () => {
     setCurrentImageIndex((prev) => (prev + 1) % images.length);
@@ -43,7 +49,7 @@ function ProjectModal({ project, isOpen, onClose, onLinkClick }: ProjectModalPro
 
   return (
     <AnimatePresence>
-      {isOpen && (
+      {isOpen && project && (
         <>
           {/* Backdrop */}
           <motion.div
@@ -380,12 +386,14 @@ export function PortfolioProjects({ title = "Featured Projects", projects, onLin
       </div>
 
       {/* Project Modal */}
-      <ProjectModal
-        project={selectedProject!}
-        isOpen={!!selectedProject}
-        onClose={() => setSelectedProject(null)}
-        onLinkClick={onLinkClick}
-      />
+      {selectedProject && (
+        <ProjectModal
+          project={selectedProject}
+          isOpen={true}
+          onClose={() => setSelectedProject(null)}
+          onLinkClick={onLinkClick}
+        />
+      )}
     </section>
   );
 }

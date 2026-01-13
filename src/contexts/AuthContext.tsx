@@ -46,13 +46,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const checkAdminRole = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .eq("role", "admin")
-      .single();
-    
+      .maybeSingle();
+
+    if (error) {
+      // Treat missing role as non-admin; don't surface noisy 406 errors.
+      setIsAdmin(false);
+      return;
+    }
+
     setIsAdmin(!!data);
   };
 
