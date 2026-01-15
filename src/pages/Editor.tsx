@@ -18,9 +18,11 @@ import { PortfolioAnalytics } from "@/components/editor/PortfolioAnalytics";
 import { VersionManager } from "@/components/editor/VersionManager";
 import { ABTestManager } from "@/components/editor/ABTestManager";
 import { AICommandInput } from "@/components/editor/AICommandInput";
+import { AIPortfolioEditor } from "@/components/editor/AIPortfolioEditor";
 import { PublicLinksManager } from "@/components/editor/PublicLinksManager";
 import { ProfilePictureEditor } from "@/components/editor/ProfilePictureEditor";
 import { getClientErrorMessage } from "@/lib/error-utils";
+import type { Portfolio as FullPortfolio, SectionVisibility, SectionTitles, PortfolioTheme, Testimonial, CustomSection } from "@/types/portfolio";
 interface Project {
   title: string;
   description: string;
@@ -47,12 +49,18 @@ interface Portfolio {
   projects: Project[];
   experience: Experience[];
   education: any[];
-  links: { github?: string; linkedin?: string; website?: string };
+  links: { github?: string; linkedin?: string; website?: string; twitter?: string; dribbble?: string; behance?: string };
   template: string;
-  theme: { primaryColor: string; backgroundColor: string; textColor: string };
+  theme: PortfolioTheme;
   resume_text: string | null;
   quality_score: number | null;
   profile_picture_url: string | null;
+  testimonials: Testimonial[];
+  custom_sections: CustomSection[];
+  section_order: string[];
+  section_visibility: SectionVisibility;
+  section_titles: SectionTitles;
+  color_mode: 'dark' | 'light';
 }
 
 export default function Editor() {
@@ -97,16 +105,29 @@ export default function Editor() {
       }
 
       setPortfolio({
-        ...data,
+        id: data.id,
+        username: data.username,
+        role: data.role,
+        status: data.status,
+        hero_title: data.hero_title,
+        hero_subtitle: data.hero_subtitle,
+        about_text: data.about_text,
         skills: Array.isArray(data.skills) ? data.skills as string[] : [],
         projects: Array.isArray(data.projects) ? data.projects as unknown as Project[] : [],
         experience: Array.isArray(data.experience) ? data.experience as unknown as Experience[] : [],
         education: Array.isArray(data.education) ? data.education as any[] : [],
-        links: data.links as Portfolio["links"] || {},
-        theme: data.theme as Portfolio["theme"] || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" },
+        links: (data.links as Portfolio["links"]) || {},
+        template: data.template,
+        theme: (data.theme as unknown as PortfolioTheme) || { primaryColor: "#3B82F6", backgroundColor: "#0F172A", textColor: "#F8FAFC" },
         resume_text: data.resume_text || null,
         quality_score: data.quality_score || null,
-        profile_picture_url: data.profile_picture_url || null
+        profile_picture_url: data.profile_picture_url || null,
+        testimonials: Array.isArray(data.testimonials) ? data.testimonials as unknown as Testimonial[] : [],
+        custom_sections: Array.isArray(data.custom_sections) ? data.custom_sections as unknown as CustomSection[] : [],
+        section_order: Array.isArray(data.section_order) ? data.section_order as string[] : ['hero', 'about', 'skills', 'experience', 'projects'],
+        section_visibility: (data.section_visibility as unknown as SectionVisibility) || { hero: true, about: true, skills: true, projects: true, experience: true, education: true, testimonials: true, contact: true },
+        section_titles: (data.section_titles as unknown as SectionTitles) || { hero: 'Hero', about: 'About', skills: 'Skills', projects: 'Projects', experience: 'Experience', education: 'Education', testimonials: 'Testimonials', contact: 'Contact' },
+        color_mode: (data.color_mode as 'dark' | 'light') || 'dark'
       });
       setLoading(false);
     };
@@ -130,8 +151,14 @@ export default function Editor() {
           experience: JSON.parse(JSON.stringify(portfolio.experience)),
           links: portfolio.links,
           template: portfolio.template,
-          theme: portfolio.theme,
-          profile_picture_url: portfolio.profile_picture_url
+          theme: JSON.parse(JSON.stringify(portfolio.theme)),
+          profile_picture_url: portfolio.profile_picture_url,
+          section_order: portfolio.section_order,
+          section_visibility: JSON.parse(JSON.stringify(portfolio.section_visibility)),
+          section_titles: JSON.parse(JSON.stringify(portfolio.section_titles)),
+          color_mode: portfolio.color_mode,
+          testimonials: JSON.parse(JSON.stringify(portfolio.testimonials || [])),
+          custom_sections: JSON.parse(JSON.stringify(portfolio.custom_sections || []))
         })
         .eq("id", portfolio.id);
 
@@ -571,18 +598,9 @@ export default function Editor() {
 
             {activeTab === "tools" && (
               <div className="space-y-4">
-                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-2">AI Content Editor</h3>
-                <AICommandInput 
-                  portfolio={{
-                    id: portfolio.id,
-                    role: portfolio.role,
-                    hero_title: portfolio.hero_title,
-                    hero_subtitle: portfolio.hero_subtitle,
-                    about_text: portfolio.about_text,
-                    skills: portfolio.skills,
-                    projects: portfolio.projects,
-                    experience: portfolio.experience
-                  }}
+                <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mb-2">AI Portfolio Editor</h3>
+                <AIPortfolioEditor 
+                  portfolio={portfolio as unknown as FullPortfolio}
                   onUpdate={updatePortfolio}
                   onSave={handleSave}
                 />
