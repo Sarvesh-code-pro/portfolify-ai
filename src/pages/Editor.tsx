@@ -20,6 +20,7 @@ import { ABTestManager } from "@/components/editor/ABTestManager";
 import { AICommandInput } from "@/components/editor/AICommandInput";
 import { AIPortfolioEditor } from "@/components/editor/AIPortfolioEditor";
 import { PublicLinksManager } from "@/components/editor/PublicLinksManager";
+import { SectionManager } from "@/components/editor/SectionManager";
 import { ProfilePictureEditor } from "@/components/editor/ProfilePictureEditor";
 import { getClientErrorMessage } from "@/lib/error-utils";
 import type { Portfolio as FullPortfolio, SectionVisibility, SectionTitles, PortfolioTheme, Testimonial, CustomSection } from "@/types/portfolio";
@@ -593,6 +594,16 @@ export default function Editor() {
                     </div>
                   </div>
                 </div>
+
+                {/* Section Manager - Drag & Drop Reordering + Visibility */}
+                <SectionManager
+                  sectionOrder={portfolio.section_order}
+                  sectionVisibility={portfolio.section_visibility}
+                  sectionTitles={portfolio.section_titles}
+                  onOrderChange={(order) => updatePortfolio({ section_order: order })}
+                  onVisibilityChange={(visibility) => updatePortfolio({ section_visibility: visibility })}
+                  onTitlesChange={(titles) => updatePortfolio({ section_titles: titles })}
+                />
               </>
             )}
 
