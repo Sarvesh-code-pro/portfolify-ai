@@ -1,10 +1,10 @@
-import { useState } from "react";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageUpload } from "./ImageUpload";
 import { Globe, Share2 } from "lucide-react";
 import type { SEOSettings } from "@/types/portfolio";
+import { getPublicPortfolioUrl } from "@/lib/public-urls";
 
 interface SEOEditorProps {
   userId: string;
@@ -30,7 +30,7 @@ export function SEOEditor({
   const displayTitle = seoSettings.meta_title || heroTitle || "Portfolio";
   const displayDescription =
     seoSettings.meta_description || heroSubtitle || "Professional portfolio";
-  const previewUrl = `${window.location.origin}/p/${username}`;
+  const previewUrl = getPublicPortfolioUrl(username);
 
   return (
     <div className="space-y-6">

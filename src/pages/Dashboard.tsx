@@ -4,8 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Sparkles, Plus, LogOut, Edit, Globe, EyeOff, ExternalLink, Trash2, BarChart3, Eye, Users, AlertCircle, FileText } from "lucide-react";
-import type { User } from "@supabase/supabase-js";
+import { Sparkles, Plus, LogOut, Edit, ExternalLink, Trash2, Eye, Users, AlertCircle, FileText } from "lucide-react";
+import { getPublicPortfolioUrl } from "@/lib/public-urls";
 import {
   Select,
   SelectContent,
@@ -29,11 +29,6 @@ interface Portfolio {
 interface Workspace {
   id: string;
   name: string;
-}
-
-interface AnalyticsSummary {
-  portfolio_id: string;
-  total_views: number;
 }
 
 export default function Dashboard() {
@@ -317,7 +312,7 @@ export default function Dashboard() {
                     )}
                     {portfolio.status === "published" && (
                       <Button variant="ghost" size="sm" asChild>
-                        <a href={`/p/${portfolio.username}`} target="_blank" rel="noopener noreferrer">
+                        <a href={getPublicPortfolioUrl(portfolio.username)} target="_blank" rel="noopener noreferrer">
                           <ExternalLink className="w-4 h-4 mr-2" />
                           View
                         </a>
