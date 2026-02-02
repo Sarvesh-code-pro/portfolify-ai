@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { getPublicLinkUrl } from "@/lib/public-urls";
 import type { PortfolioLink, SectionVisibility } from "@/types/portfolio";
 
 interface PublicLinksManagerProps {
@@ -113,7 +114,7 @@ export function PublicLinksManager({
   };
 
   const copyLink = (slug: string) => {
-    const url = `${window.location.origin}/link/${slug}`;
+    const url = getPublicLinkUrl(slug);
     navigator.clipboard.writeText(url);
     toast({ title: "Link copied to clipboard" });
   };
@@ -245,7 +246,7 @@ export function PublicLinksManager({
                     asChild
                   >
                     <a
-                      href={`/link/${link.slug}`}
+                      href={getPublicLinkUrl(link.slug)}
                       target="_blank"
                       rel="noopener noreferrer"
                     >

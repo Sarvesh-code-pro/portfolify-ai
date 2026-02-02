@@ -23,6 +23,7 @@ import { PublicLinksManager } from "@/components/editor/PublicLinksManager";
 import { SectionManager } from "@/components/editor/SectionManager";
 import { ProfilePictureEditor } from "@/components/editor/ProfilePictureEditor";
 import { getClientErrorMessage } from "@/lib/error-utils";
+import { getPublicPortfolioUrl } from "@/lib/public-urls";
 import type { Portfolio as FullPortfolio, SectionVisibility, SectionTitles, PortfolioTheme, Testimonial, CustomSection } from "@/types/portfolio";
 interface Project {
   title: string;
@@ -219,7 +220,7 @@ export default function Editor() {
       setPortfolio({ ...portfolio, status: newStatus });
       
       if (newStatus === "published") {
-        const publicUrl = `${window.location.origin}/p/${portfolio.username}`;
+        const publicUrl = getPublicPortfolioUrl(portfolio.username);
         toast({ 
           title: "Portfolio published! 🎉",
           description: `Your portfolio is now live at: ${publicUrl}`,
@@ -290,7 +291,7 @@ export default function Editor() {
           {portfolio.status === "published" && (
             <div className="flex items-center gap-2">
               <a 
-                href={`/p/${portfolio.username}`} 
+                href={getPublicPortfolioUrl(portfolio.username)}
                 target="_blank" 
                 rel="noopener noreferrer"
                 className="text-sm text-primary hover:underline flex items-center gap-1"
@@ -302,7 +303,7 @@ export default function Editor() {
                 size="sm"
                 className="h-7 px-2"
                 onClick={() => {
-                  const url = `${window.location.origin}/p/${portfolio.username}`;
+                  const url = getPublicPortfolioUrl(portfolio.username);
                   navigator.clipboard.writeText(url);
                   setLinkCopied(true);
                   setTimeout(() => setLinkCopied(false), 2000);
