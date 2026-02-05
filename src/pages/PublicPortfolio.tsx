@@ -12,14 +12,15 @@ import {
   PortfolioTestimonials,
   PortfolioContact,
   PortfolioFooter,
-  PortfolioCertificates,
 } from "@/components/portfolio";
+import { VoiceAgent } from "@/components/portfolio/VoiceAgent";
+import { FloatingShare } from "@/components/portfolio/SocialShare";
+import { VisitorReactions } from "@/components/portfolio/VisitorReactions";
+import { getPublicPortfolioUrl } from "@/lib/public-urls";
 import type { 
-  Portfolio, 
   Project, 
   Experience, 
   Testimonial,
-  Certificate,
   ContactSettings, 
   SEOSettings,
   SectionVisibility,
@@ -339,9 +340,25 @@ export default function PublicPortfolio() {
           />
         )}
 
+        {/* Visitor Reactions */}
+        <VisitorReactions portfolioId={portfolio.id} />
+
         {/* Footer */}
         <PortfolioFooter name={name} />
       </div>
+
+      {/* Floating Social Share */}
+      <FloatingShare 
+        url={getPublicPortfolioUrl(portfolio.username)} 
+        title={`${name}'s Portfolio`} 
+      />
+
+      {/* AI Voice Agent */}
+      <VoiceAgent
+        portfolioName={name}
+        skills={portfolio.skills}
+        role={portfolio.role}
+      />
     </>
   );
 }
