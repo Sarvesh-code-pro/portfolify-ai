@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Sparkles } from "lucide-react";
+import { ThemeToggle } from "./ThemeToggle";
 
 export function Navbar() {
   return (
@@ -23,9 +24,13 @@ export function Navbar() {
           <a href="#templates" className="text-muted-foreground hover:text-foreground transition-colors">
             Templates
           </a>
+          <a href="#pricing" className="text-muted-foreground hover:text-foreground transition-colors">
+            Pricing
+          </a>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
           <Button variant="ghost" asChild>
             <Link to="/auth">Sign in</Link>
           </Button>

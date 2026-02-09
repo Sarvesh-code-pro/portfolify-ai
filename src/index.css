@@ -6,6 +6,83 @@
 
 @layer base {
   :root {
+    /* Core colors - Light theme */
+    --background: 220 20% 97%;
+    --foreground: 222 47% 11%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222 47% 11%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222 47% 11%;
+
+    /* Primary - Electric Blue */
+    --primary: 217 91% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Secondary - Slate */
+    --secondary: 220 14% 92%;
+    --secondary-foreground: 222 47% 11%;
+
+    --muted: 220 14% 94%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 217 91% 50%;
+    --accent-foreground: 0 0% 100%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 13% 87%;
+    --input: 220 13% 87%;
+    --ring: 217 91% 50%;
+
+    --radius: 0.75rem;
+
+    /* Custom tokens */
+    --gradient-primary: linear-gradient(135deg, hsl(217 91% 50%) 0%, hsl(262 83% 58%) 100%);
+    --gradient-hero: linear-gradient(180deg, hsl(220 20% 97%) 0%, hsl(220 20% 93%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(220 20% 97%) 100%);
+    --gradient-glow: radial-gradient(ellipse at center, hsl(217 91% 50% / 0.1) 0%, transparent 70%);
+    --gradient-spotlight: radial-gradient(600px circle at var(--mouse-x, 50%) var(--mouse-y, 50%), hsl(217 91% 50% / 0.04), transparent 40%);
+    
+    --shadow-glow: 0 0 60px hsl(217 91% 50% / 0.15);
+    --shadow-card: 0 4px 24px hsl(220 20% 80% / 0.3);
+    --shadow-elevated: 0 8px 32px hsl(220 20% 80% / 0.4);
+    --shadow-glow-strong: 0 0 80px hsl(217 91% 50% / 0.25);
+
+    /* Typography */
+    --font-display: 'DM Sans', sans-serif;
+    --font-body: 'Inter', sans-serif;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 222 47% 11%;
+    --sidebar-primary: 217 91% 50%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 14% 92%;
+    --sidebar-accent-foreground: 222 47% 11%;
+    --sidebar-border: 220 13% 87%;
+    --sidebar-ring: 217 91% 50%;
+
+    /* Role colors */
+    --developer: 142 71% 45%;
+    --designer: 280 75% 60%;
+    --product-manager: 32 95% 55%;
+
+    /* Success/Warning */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --warning: 45 93% 47%;
+    --warning-foreground: 222 47% 6%;
+
+    /* Portfolio specific */
+    --portfolio-accent: 262 83% 58%;
+    --portfolio-cyan: 185 84% 50%;
+    --portfolio-gold: 45 93% 55%;
+  }
+
+  .dark {
     /* Core colors - Dark sleek theme */
     --background: 222 47% 6%;
     --foreground: 210 40% 98%;
@@ -16,11 +93,9 @@
     --popover: 222 47% 8%;
     --popover-foreground: 210 40% 98%;
 
-    /* Primary - Electric Blue */
     --primary: 217 91% 60%;
     --primary-foreground: 222 47% 6%;
 
-    /* Secondary - Slate */
     --secondary: 217 33% 17%;
     --secondary-foreground: 210 40% 98%;
 
@@ -36,8 +111,6 @@
     --border: 217 33% 17%;
     --input: 217 33% 17%;
     --ring: 217 91% 60%;
-
-    --radius: 0.75rem;
 
     /* Custom tokens */
     --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%) 0%, hsl(262 83% 58%) 100%);
@@ -51,10 +124,6 @@
     --shadow-elevated: 0 8px 32px hsl(222 47% 4% / 0.6);
     --shadow-glow-strong: 0 0 80px hsl(217 91% 60% / 0.35);
 
-    /* Typography */
-    --font-display: 'DM Sans', sans-serif;
-    --font-body: 'Inter', sans-serif;
-
     /* Sidebar */
     --sidebar-background: 222 47% 8%;
     --sidebar-foreground: 210 40% 98%;
@@ -65,43 +134,7 @@
     --sidebar-border: 217 33% 17%;
     --sidebar-ring: 217 91% 60%;
 
-    /* Role colors */
-    --developer: 142 71% 45%;
-    --designer: 280 75% 60%;
-    --product-manager: 32 95% 55%;
-
-    /* Success/Warning */
-    --success: 142 71% 45%;
     --success-foreground: 222 47% 6%;
-    --warning: 45 93% 47%;
-    --warning-foreground: 222 47% 6%;
-
-    /* Portfolio specific */
-    --portfolio-accent: 262 83% 58%;
-    --portfolio-cyan: 185 84% 50%;
-    --portfolio-gold: 45 93% 55%;
-  }
-
-  .dark {
-    --background: 222 47% 6%;
-    --foreground: 210 40% 98%;
-    --card: 222 47% 8%;
-    --card-foreground: 210 40% 98%;
-    --popover: 222 47% 8%;
-    --popover-foreground: 210 40% 98%;
-    --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 6%;
-    --secondary: 217 33% 17%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217 33% 12%;
-    --muted-foreground: 215 20% 55%;
-    --accent: 217 91% 60%;
-    --accent-foreground: 222 47% 6%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217 33% 17%;
-    --input: 217 33% 17%;
-    --ring: 217 91% 60%;
   }
 }
 
