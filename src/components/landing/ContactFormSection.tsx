@@ -6,6 +6,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useState } from "react";
 import { toast } from "sonner";
 import { z } from "zod";
+import { supabase } from "@/integrations/supabase/client";
 
 const contactSchema = z.object({
   name: z.string().trim().min(1, "Name is required").max(100),
@@ -33,11 +34,23 @@ export function ContactFormSection() {
     }
 
     setSending(true);
-    // Simulate sending — replace with real API call
-    await new Promise((r) => setTimeout(r, 1000));
-    setSending(false);
-    toast.success("Message sent! We'll get back to you soon.");
-    setForm({ name: "", email: "", message: "" });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { error } = await supabase.from("contact_messages").insert({
+        name: result.data.name,
+        email: result.data.email,
+        subject: "Contact Form Submission",
+        message: result.data.message,
+        user_id: user?.id ?? null,
+      });
+      if (error) throw error;
+      toast.success("Message sent! We'll get back to you soon.");
+      setForm({ name: "", email: "", message: "" });
+    } catch {
+      toast.error("Failed to send message. Please try again.");
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
