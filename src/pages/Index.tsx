@@ -7,6 +7,7 @@ import { TemplatesSection } from "@/components/landing/TemplatesSection";
 import { PricingSection } from "@/components/landing/PricingSection";
 import { TestimonialsSection } from "@/components/landing/TestimonialsSection";
 import { CTASection } from "@/components/landing/CTASection";
+import { ContactFormSection } from "@/components/landing/ContactFormSection";
 import { Footer } from "@/components/landing/Footer";
 import { FloatingOrbs } from "@/components/landing/FloatingOrbs";
 
@@ -22,6 +23,7 @@ const Index = () => {
       <TemplatesSection />
       <PricingSection />
       <TestimonialsSection />
+      <ContactFormSection />
       <CTASection />
       <Footer />
     </div>
