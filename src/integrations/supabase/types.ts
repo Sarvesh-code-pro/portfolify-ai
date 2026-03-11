@@ -302,6 +302,7 @@ export type Database = {
           color_mode: string | null
           contact_settings: Json | null
           created_at: string
+          custom_domain: string | null
           custom_sections: Json | null
           education: Json | null
           experience: Json | null
@@ -342,6 +343,7 @@ export type Database = {
           color_mode?: string | null
           contact_settings?: Json | null
           created_at?: string
+          custom_domain?: string | null
           custom_sections?: Json | null
           education?: Json | null
           experience?: Json | null
@@ -382,6 +384,7 @@ export type Database = {
           color_mode?: string | null
           contact_settings?: Json | null
           created_at?: string
+          custom_domain?: string | null
           custom_sections?: Json | null
           education?: Json | null
           experience?: Json | null
@@ -749,6 +752,7 @@ export type Database = {
           color_mode: string | null
           contact_settings: Json | null
           created_at: string | null
+          custom_domain: string | null
           custom_sections: Json | null
           education: Json | null
           experience: Json | null
@@ -782,6 +786,7 @@ export type Database = {
           color_mode?: string | null
           contact_settings?: Json | null
           created_at?: string | null
+          custom_domain?: string | null
           custom_sections?: Json | null
           education?: Json | null
           experience?: Json | null
@@ -815,6 +820,7 @@ export type Database = {
           color_mode?: string | null
           contact_settings?: Json | null
           created_at?: string | null
+          custom_domain?: string | null
           custom_sections?: Json | null
           education?: Json | null
           experience?: Json | null

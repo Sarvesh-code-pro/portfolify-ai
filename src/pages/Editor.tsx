@@ -24,6 +24,7 @@ import { SectionManager } from "@/components/editor/SectionManager";
 import { ProfilePictureEditor } from "@/components/editor/ProfilePictureEditor";
 import { getClientErrorMessage } from "@/lib/error-utils";
 import { getPublicPortfolioUrl } from "@/lib/public-urls";
+import { CustomDomainEditor } from "@/components/editor/CustomDomainEditor";
 import type { Portfolio as FullPortfolio, SectionVisibility, SectionTitles, PortfolioTheme, Testimonial, CustomSection } from "@/types/portfolio";
 interface Project {
   title: string;
@@ -63,6 +64,7 @@ interface Portfolio {
   section_visibility: SectionVisibility;
   section_titles: SectionTitles;
   color_mode: 'dark' | 'light';
+  custom_domain: string | null;
 }
 
 export default function Editor() {
@@ -129,7 +131,8 @@ export default function Editor() {
         section_order: Array.isArray(data.section_order) ? data.section_order as string[] : ['hero', 'about', 'skills', 'experience', 'projects'],
         section_visibility: (data.section_visibility as unknown as SectionVisibility) || { hero: true, about: true, skills: true, projects: true, experience: true, education: true, testimonials: true, contact: true },
         section_titles: (data.section_titles as unknown as SectionTitles) || { hero: 'Hero', about: 'About', skills: 'Skills', projects: 'Projects', experience: 'Experience', education: 'Education', testimonials: 'Testimonials', contact: 'Contact' },
-        color_mode: (data.color_mode as 'dark' | 'light') || 'dark'
+        color_mode: (data.color_mode as 'dark' | 'light') || 'dark',
+        custom_domain: (data as any).custom_domain || null
       });
       setLoading(false);
     };
@@ -160,7 +163,8 @@ export default function Editor() {
           section_titles: JSON.parse(JSON.stringify(portfolio.section_titles)),
           color_mode: portfolio.color_mode,
           testimonials: JSON.parse(JSON.stringify(portfolio.testimonials || [])),
-          custom_sections: JSON.parse(JSON.stringify(portfolio.custom_sections || []))
+          custom_sections: JSON.parse(JSON.stringify(portfolio.custom_sections || [])),
+          custom_domain: portfolio.custom_domain
         })
         .eq("id", portfolio.id);
 
@@ -707,6 +711,15 @@ export default function Editor() {
                     }}
                   />
                 )}
+
+                <div className="mt-6">
+                  <CustomDomainEditor
+                    customDomain={portfolio.custom_domain}
+                    username={portfolio.username}
+                    isPublished={portfolio.status === "published"}
+                    onChange={(domain) => updatePortfolio({ custom_domain: domain })}
+                  />
+                </div>
 
                 <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mt-6 mb-2">Analytics</h3>
                 <PortfolioAnalytics 
