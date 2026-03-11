@@ -24,6 +24,7 @@ import { SectionManager } from "@/components/editor/SectionManager";
 import { ProfilePictureEditor } from "@/components/editor/ProfilePictureEditor";
 import { getClientErrorMessage } from "@/lib/error-utils";
 import { getPublicPortfolioUrl } from "@/lib/public-urls";
+import { CustomDomainEditor } from "@/components/editor/CustomDomainEditor";
 import type { Portfolio as FullPortfolio, SectionVisibility, SectionTitles, PortfolioTheme, Testimonial, CustomSection } from "@/types/portfolio";
 interface Project {
   title: string;
