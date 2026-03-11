@@ -118,7 +118,7 @@ export function CustomDomainEditor({
             {/* DNS Setup Instructions */}
             <div className="rounded-lg border border-border bg-secondary/30 p-4 space-y-3">
               <h4 className="text-sm font-medium flex items-center gap-2">
-                <AlertCircle className="w-4 h-4 text-yellow-500" />
+                <AlertCircle className="w-4 h-4 text-muted-foreground" />
                 DNS Configuration Required
               </h4>
               <p className="text-xs text-muted-foreground">
