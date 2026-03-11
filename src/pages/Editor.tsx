@@ -163,7 +163,8 @@ export default function Editor() {
           section_titles: JSON.parse(JSON.stringify(portfolio.section_titles)),
           color_mode: portfolio.color_mode,
           testimonials: JSON.parse(JSON.stringify(portfolio.testimonials || [])),
-          custom_sections: JSON.parse(JSON.stringify(portfolio.custom_sections || []))
+          custom_sections: JSON.parse(JSON.stringify(portfolio.custom_sections || [])),
+          custom_domain: portfolio.custom_domain
         })
         .eq("id", portfolio.id);
 
