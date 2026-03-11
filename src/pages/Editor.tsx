@@ -712,6 +712,15 @@ export default function Editor() {
                   />
                 )}
 
+                <div className="mt-6">
+                  <CustomDomainEditor
+                    customDomain={portfolio.custom_domain}
+                    username={portfolio.username}
+                    isPublished={portfolio.status === "published"}
+                    onChange={(domain) => updatePortfolio({ custom_domain: domain })}
+                  />
+                </div>
+
                 <h3 className="font-semibold text-sm uppercase tracking-wide text-muted-foreground mt-6 mb-2">Analytics</h3>
                 <PortfolioAnalytics 
                   portfolioId={portfolio.id}
