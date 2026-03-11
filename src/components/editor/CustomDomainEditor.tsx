@@ -78,11 +78,11 @@ export function CustomDomainEditor({
         {customDomain && (
           <Badge variant="outline" className="text-xs">
             {isPublished ? (
-              <span className="flex items-center gap-1 text-green-500">
+            <span className="flex items-center gap-1 text-primary">
                 <CheckCircle2 className="w-3 h-3" /> Active
               </span>
             ) : (
-              <span className="flex items-center gap-1 text-yellow-500">
+              <span className="flex items-center gap-1 text-muted-foreground">
                 <AlertCircle className="w-3 h-3" /> Draft
               </span>
             )}
