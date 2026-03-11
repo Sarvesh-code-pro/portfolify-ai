@@ -131,7 +131,8 @@ export default function Editor() {
         section_order: Array.isArray(data.section_order) ? data.section_order as string[] : ['hero', 'about', 'skills', 'experience', 'projects'],
         section_visibility: (data.section_visibility as unknown as SectionVisibility) || { hero: true, about: true, skills: true, projects: true, experience: true, education: true, testimonials: true, contact: true },
         section_titles: (data.section_titles as unknown as SectionTitles) || { hero: 'Hero', about: 'About', skills: 'Skills', projects: 'Projects', experience: 'Experience', education: 'Education', testimonials: 'Testimonials', contact: 'Contact' },
-        color_mode: (data.color_mode as 'dark' | 'light') || 'dark'
+        color_mode: (data.color_mode as 'dark' | 'light') || 'dark',
+        custom_domain: (data as any).custom_domain || null
       });
       setLoading(false);
     };
