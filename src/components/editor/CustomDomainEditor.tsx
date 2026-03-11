@@ -143,7 +143,7 @@ export function CustomDomainEditor({
                       onClick={() => copyToClipboard(record.value, `dns-${i}`)}
                     >
                       {copied === `dns-${i}` ? (
-                        <Check className="w-3 h-3 text-green-500" />
+                        <Check className="w-3 h-3 text-primary" />
                       ) : (
                         <Copy className="w-3 h-3" />
                       )}
