@@ -64,6 +64,7 @@ interface Portfolio {
   section_visibility: SectionVisibility;
   section_titles: SectionTitles;
   color_mode: 'dark' | 'light';
+  custom_domain: string | null;
 }
 
 export default function Editor() {
